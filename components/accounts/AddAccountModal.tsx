@@ -2,14 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useAccountsStore } from "@/src/store/accountsStore";
+import { useAccountsStore, type Account } from "@/src/store/accountsStore";
 import { apiFetch } from "@/src/lib/api";
-
-type Account = {
-  id: number;
-  platform: string;
-  username: string;
-};
 
 interface AddAccountModalProps {
   groupId: number;

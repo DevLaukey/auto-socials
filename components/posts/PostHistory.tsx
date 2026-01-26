@@ -3,12 +3,7 @@
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
 import ScheduleModal from "./modals/ScheduleModal";
-
-interface Account {
-  id: number;
-  platform: string;
-  username: string;
-}
+import type { Account } from "@/src/store/accountsStore";
 
 interface Post {
   id: number;

@@ -44,7 +44,7 @@ export default function AccountGroupsLayout() {
    * ------------------------------------------- */
   const activeGroup = useMemo(
     () => groups.find((g) => g.id === activeGroupId) ?? null,
-    [groups, activeGroupId],
+    [groups, activeGroupId]
   );
 
   /* -------------------------------------------
@@ -62,9 +62,11 @@ export default function AccountGroupsLayout() {
   const activeGroupAccounts = useMemo(
     () =>
       activeGroupId !== null
-        ? groupAccounts[activeGroupId] ?? []
+        ? (groupAccounts[activeGroupId] ?? []).filter(
+            (account) => account.username !== undefined
+          )
         : [],
-    [activeGroupId, groupAccounts],
+    [activeGroupId, groupAccounts]
   );
 
   return (

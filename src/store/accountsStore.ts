@@ -8,7 +8,7 @@ import { apiFetch } from "@/src/lib/api";
 export interface Account {
   id: number;
   platform: string;
-  username?: string;
+  username: string;
   account_username?: string;
   status?: string;
 
@@ -87,7 +87,7 @@ export const useAccountsStore = create<AccountsState>((set, get) => ({
       const normalized: Account[] = data.map((a: any) => ({
         id: a.id,
         platform: a.platform,
-        username: a.account_username,
+        username: a.account_username || a.username || "",
         status: a.status,
       }));
 
@@ -103,7 +103,7 @@ export const useAccountsStore = create<AccountsState>((set, get) => ({
     const normalized: Account[] = data.map((a: any) => ({
       id: a.id,
       platform: a.platform,
-      username: a.accountUsername,
+      username: a.accountUsername || a.account_username || a.username || "",
       status: "connected",
     }));
 

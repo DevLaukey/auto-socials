@@ -1,12 +1,5 @@
-import { useAccountsStore } from "@/src/store/accountsStore";
+import { useAccountsStore, type Account } from "@/src/store/accountsStore";
 import { Button } from "@/components/ui/button";
-
-interface Account {
-  id: number;
-  platform: string;
-  username: string;
-  status?: string;
-}
 
 export default function AccountCard({ account }: { account: Account }) {
   const disconnectAccount = useAccountsStore((s) => s.disconnectAccount);

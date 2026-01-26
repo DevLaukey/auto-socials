@@ -1,12 +1,6 @@
 import { Button } from "@/components/ui/button";
 import AccountCard from "./AccountCard";
-
-type Account = {
-  id: number;
-  platform: string;
-  username: string;
-  status?: string;
-};
+import type { Account } from "@/src/store/accountsStore";
 
 type Props = {
   group: { id: number; name: string };

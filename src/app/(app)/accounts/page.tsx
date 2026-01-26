@@ -2,23 +2,16 @@
 
 import { useState } from "react";
 import ConnectedAccountsView from "@/components/accounts/views/ConnectedAccountsView";
-import SelectPlatformView from "@/components/accounts/views/SelectPlatformView";
 import AddAccountView from "@/components/accounts/views/AddAccountView";
 import AccountGroupsLayout from "@/components/accounts/AccountGroupsLayout";
-import { SocialAccount } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 
 export default function SocialAccountsPage() {
   const [view, setView] = useState<
-    "CONNECTED" | "SELECT_PLATFORM" | "ADD_ACCOUNT" | "GROUPS"
+    "CONNECTED" | "ADD_ACCOUNT" | "GROUPS"
   >("CONNECTED");
 
-  const [selectedPlatform, setSelectedPlatform] = useState<
-    SocialAccount["platform"] | null
-  >(null);
-
   function resetToConnected() {
-    setSelectedPlatform(null);
     setView("CONNECTED");
   }
 
@@ -38,27 +31,13 @@ export default function SocialAccountsPage() {
       {/* MAIN CONTENT */}
       {view === "CONNECTED" && (
         <ConnectedAccountsView
-          onConnect={() => setView("SELECT_PLATFORM")}
+          onConnect={() => setView("ADD_ACCOUNT")}
           onGroups={() => setView("GROUPS")}
         />
       )}
 
-      {view === "SELECT_PLATFORM" && (
-        <SelectPlatformView
-          onSelect={(platform) => {
-            setSelectedPlatform(platform);
-            setView("ADD_ACCOUNT");
-          }}
-          onBack={resetToConnected}
-        />
-      )}
-
-      {view === "ADD_ACCOUNT" && selectedPlatform && (
-        <AddAccountView
-          platform={selectedPlatform}
-          onDone={resetToConnected}
-          onClose={resetToConnected} // ✅ FIX
-        />
+      {view === "ADD_ACCOUNT" && (
+        <AddAccountView onClose={resetToConnected} />
       )}
 
       {view === "GROUPS" && <AccountGroupsLayout />}
