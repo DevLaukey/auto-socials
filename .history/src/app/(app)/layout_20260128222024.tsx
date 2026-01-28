@@ -38,9 +38,13 @@ export default function AppLayout({
       router.replace("/login");
       return;
     }
-    // Authenticated - redirect to dashboard
+
     router.replace("/dashboard");
   }, [loading, user, router]);
+
+  if (loading) {
+    return <div className="p-6">Loading session...</div>;
+  }
 
   /**
    * While redirecting, prevent protected UI from flashing

@@ -11,17 +11,22 @@ export default function RegisterPage() {
 
   useEffect(() => {
     if (!loading && user) {
-      router.replace("/login");
+      router.replace("/dashboard");
     }
   }, [loading, user, router]);
 
   return (
     <AuthForm
-      title="Create an account"
-      buttonText="Register"
+      title="Create your account"
+      subtitle="Get started with your free account today"
+      buttonText="Create account"
       onSubmit={async (email: string, password: string) => {
         await register(email, password);
       }}
+      linkDescription="Already have an account?"
+      linkText="Sign in"
+      linkHref="/login"
+      showConfirmPassword
     />
   );
 }

@@ -116,6 +116,10 @@ export default function SubscriptionPage() {
     }
   };
 
+  if (loading || loadingAuth) {
+    return <div className="p-8">Loading subscription plans…</div>;
+  }
+
   return (
     <div className="max-w-7xl mx-auto p-8 relative">
       <h1 className="text-3xl font-bold mb-2 text-center">

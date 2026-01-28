@@ -17,11 +17,15 @@ export default function LoginPage() {
 
   return (
     <AuthForm
-      title="Sign in to your account"
-      buttonText="Login"
+      title="Welcome back"
+      subtitle="Sign in to your account to continue"
+      buttonText="Sign in"
       onSubmit={async (email: string, password: string) => {
         await login(email, password);
       }}
+      linkDescription="Don't have an account?"
+      linkText="Create one"
+      linkHref="/register"
     />
   );
 }
