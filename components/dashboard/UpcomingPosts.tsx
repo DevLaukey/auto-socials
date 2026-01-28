@@ -13,7 +13,7 @@ export default function UpcomingPosts() {
 
   return (
     <div
-      onClick={() => router.push("/app/posts?tab=scheduled")}
+      onClick={() => router.push("/posts")}
       className="
         bg-white rounded-xl border p-4 cursor-pointer
         hover:shadow-md hover:border-slate-300 transition

@@ -11,7 +11,7 @@ const stats = [
   {
     label: "Scheduled Posts",
     value: "24",
-    href: "/posts/scheduled",
+    href: "/posts",
   },
   {
     label: "Videos Processed",
@@ -19,9 +19,9 @@ const stats = [
     href: "/clips",
   },
   {
-    label: "Active Automations",
+    label: "Analytics",
     value: "5",
-    href: "/settings",
+    href: "/analytics",
   },
 ];
 
