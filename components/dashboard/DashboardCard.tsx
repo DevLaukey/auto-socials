@@ -23,20 +23,20 @@ export default function DashboardCard({
     <div
       onClick={() => router.push(href)}
       className={cn(
-        "cursor-pointer rounded-xl border bg-white p-5",
+        "cursor-pointer rounded-xl border bg-white p-3 md:p-5",
         "hover:shadow-md hover:border-slate-300 transition"
       )}
     >
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-muted-foreground">{title}</p>
-          <p className="text-2xl font-semibold">{value}</p>
+          <p className="text-xs md:text-sm text-muted-foreground">{title}</p>
+          <p className="text-xl md:text-2xl font-semibold">{value}</p>
         </div>
-        <div className="text-muted-foreground">{icon}</div>
+        <div className="text-muted-foreground hidden sm:block">{icon}</div>
       </div>
 
       {description && (
-        <p className="mt-3 text-sm text-muted-foreground">{description}</p>
+        <p className="mt-2 md:mt-3 text-xs md:text-sm text-muted-foreground">{description}</p>
       )}
     </div>
   );

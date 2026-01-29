@@ -16,13 +16,13 @@ export default function SocialAccountsPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
       {/* PAGE HEADER */}
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold">Social Accounts</h1>
+        <h1 className="text-xl md:text-2xl font-semibold">Social Accounts</h1>
 
         {view !== "CONNECTED" && (
-          <Button variant="outline" onClick={resetToConnected}>
+          <Button variant="outline" size="sm" onClick={resetToConnected}>
             ← Back
           </Button>
         )}

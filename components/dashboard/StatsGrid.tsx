@@ -29,20 +29,20 @@ export default function StatsGrid() {
   const router = useRouter();
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
       {stats.map((stat) => (
         <div
           key={stat.label}
           onClick={() => router.push(stat.href)}
           className="
-            bg-white rounded-xl border p-4 cursor-pointer
+            bg-white rounded-xl border p-3 md:p-4 cursor-pointer
             hover:shadow-md hover:border-slate-300 transition
           "
         >
-          <p className="text-sm text-muted-foreground">{stat.label}</p>
-          <p className="text-2xl font-semibold mt-1">{stat.value}</p>
+          <p className="text-xs md:text-sm text-muted-foreground">{stat.label}</p>
+          <p className="text-xl md:text-2xl font-semibold mt-1">{stat.value}</p>
 
-          <p className="mt-3 text-xs text-muted-foreground">View details →</p>
+          <p className="mt-2 md:mt-3 text-xs text-muted-foreground hidden sm:block">View details →</p>
         </div>
       ))}
     </div>

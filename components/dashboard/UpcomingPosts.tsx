@@ -15,22 +15,22 @@ export default function UpcomingPosts() {
     <div
       onClick={() => router.push("/posts")}
       className="
-        bg-white rounded-xl border p-4 cursor-pointer
+        bg-white rounded-xl border p-3 md:p-4 cursor-pointer
         hover:shadow-md hover:border-slate-300 transition
       "
     >
-      <h2 className="font-semibold mb-4">Upcoming Posts</h2>
+      <h2 className="font-semibold mb-3 md:mb-4 text-sm md:text-base">Upcoming Posts</h2>
 
-      <ul className="space-y-3">
+      <ul className="space-y-2 md:space-y-3">
         {upcomingPosts.map((post, index) => (
-          <li key={index} className="text-sm">
+          <li key={index} className="text-xs md:text-sm">
             <span className="font-medium">{post.platform}</span>
             <span className="text-muted-foreground"> — {post.time}</span>
           </li>
         ))}
       </ul>
 
-      <p className="mt-4 text-xs text-muted-foreground">
+      <p className="mt-3 md:mt-4 text-xs text-muted-foreground">
         View scheduled posts →
       </p>
     </div>

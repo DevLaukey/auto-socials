@@ -11,6 +11,7 @@ import {
   Users,
   Send,
   FileText,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -27,14 +28,35 @@ const navItems = [
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 bg-slate-900 text-slate-200 flex flex-col">
-      <div className="px-6 py-4 text-xl font-semibold">AutoPlatform</div>
+    <aside
+      className={`
+        fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-slate-200 flex flex-col
+        transform transition-transform duration-300 ease-in-out
+        lg:relative lg:translate-x-0
+        ${isOpen ? "translate-x-0" : "-translate-x-full"}
+      `}
+    >
+      {/* Header with close button on mobile */}
+      <div className="px-6 py-4 flex items-center justify-between">
+        <span className="text-xl font-semibold">AutoPlatform</span>
+        <button
+          onClick={onClose}
+          className="lg:hidden p-1 rounded-md hover:bg-slate-800"
+        >
+          <X size={20} />
+        </button>
+      </div>
 
-      <nav className="flex-1 px-4 space-y-1">
+      <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = pathname === item.href;
@@ -43,6 +65,7 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onClose}
               className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm
                 ${active ? "bg-slate-800 text-white" : "hover:bg-slate-800"}`}
             >
@@ -60,6 +83,7 @@ export default function Sidebar() {
         <p className="text-xs text-slate-400 px-3">Admin</p>
         <Link
           href="/admin/users"
+          onClick={onClose}
           className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-slate-800 text-sm"
         >
           <Users size={18} />
@@ -67,6 +91,7 @@ export default function Sidebar() {
         </Link>
         <Link
           href="/admin/logs"
+          onClick={onClose}
           className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-slate-800 text-sm"
         >
           <FileText size={18} />
