@@ -10,7 +10,7 @@ export default function CreateGroupModal({ onClose }: { onClose: () => void }) {
   const fetchGroups = useAccountsStore((state) => state.loadGroups);
 
   async function createGroup() {
-    await apiFetch("/groups/create", {
+    await apiFetch("/groups/", {
       method: "POST",
       body: JSON.stringify({
         group_name: name,

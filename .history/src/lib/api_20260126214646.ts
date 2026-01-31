@@ -62,7 +62,7 @@ export const createAccount = (data: {
   password?: string;
   group_name?: string;
 }) =>
-  apiFetch("/social-accounts/create", {
+  apiFetch("/social-accounts", {
     method: "POST",
     body: JSON.stringify(data),
   });

@@ -45,8 +45,8 @@ interface AccountsState {
   /* ---------- MUTATIONS ---------- */
   addAccountToGroup: (groupId: number, accountId: number) => Promise<void>;
   removeAccountFromGroup: (groupId: number, accountId: number) => Promise<void>;
-
-  /** ✅ ADDED (REQUIRED BY UI) */
+  renameGroup: (groupId: number, newName: string) => Promise<void>;
+  deleteGroup: (groupId: number) => Promise<void>;
   disconnectAccount: (accountId: number) => Promise<void>;
 }
 
@@ -137,9 +137,32 @@ export const useAccountsStore = create<AccountsState>((set, get) => ({
     await get().loadGroupAccounts(groupId);
   },
 
-  /** =======================
-   *  DISCONNECT ACCOUNT
-   *  ======================= */
+  renameGroup: async (groupId: number, newName: string) => {
+    await apiFetch(`/groups/${groupId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ group_name: newName }),
+    });
+
+    await get().loadGroups();
+  },
+
+  deleteGroup: async (groupId: number) => {
+    await apiFetch(`/groups/${groupId}`, {
+      method: "DELETE",
+    });
+
+    // remove cached group accounts
+    set((state) => {
+      const { [groupId]: _, ...rest } = state.groupAccounts;
+      return { groupAccounts: rest };
+    });
+
+    await get().loadGroups();
+  },
+
+  /* =======================
+     DISCONNECT ACCOUNT
+  ======================= */
   disconnectAccount: async (accountId: number) => {
     await apiFetch(`/social-accounts/${accountId}`, {
       method: "DELETE",

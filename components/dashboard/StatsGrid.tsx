@@ -1,32 +1,61 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-
-const stats = [
-  {
-    label: "Connected Accounts",
-    value: "8",
-    href: "/accounts",
-  },
-  {
-    label: "Scheduled Posts",
-    value: "24",
-    href: "/posts",
-  },
-  {
-    label: "Videos Processed",
-    value: "112",
-    href: "/clips",
-  },
-  {
-    label: "Analytics",
-    value: "5",
-    href: "/analytics",
-  },
-];
+import { useAccountsStore } from "@/src/store/accountsStore";
+import { listPosts, Post } from "@/src/lib/posts";
 
 export default function StatsGrid() {
   const router = useRouter();
+  const { accounts, loadAccounts } = useAccountsStore();
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        await loadAccounts();
+        const allPosts = await listPosts();
+        setPosts(allPosts ?? []);
+      } catch {
+        // silently handle errors — stats will show 0
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, [loadAccounts]);
+
+  const scheduledCount = posts.filter(
+    (p) => p.status === "scheduled" || p.status === "pending"
+  ).length;
+
+  const publishedCount = posts.filter(
+    (p) => p.status === "published" || p.status === "executed" || p.status === "success"
+  ).length;
+
+  const stats = [
+    {
+      label: "Connected Accounts",
+      value: loading ? "—" : String(accounts.length),
+      href: "/accounts",
+    },
+    {
+      label: "Scheduled Posts",
+      value: loading ? "—" : String(scheduledCount),
+      href: "/posts",
+    },
+    {
+      label: "Published Posts",
+      value: loading ? "—" : String(publishedCount),
+      href: "/posts",
+    },
+    {
+      label: "Total Posts",
+      value: loading ? "—" : String(posts.length),
+      href: "/posts",
+    },
+  ];
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">

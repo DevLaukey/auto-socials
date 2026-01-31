@@ -28,18 +28,13 @@ export default function AppLayout({
   /**
    * Redirect only AFTER auth check completes
    * - Not logged in → /login
-   * - Logged in but no active subscription → /subscription
    */
   useEffect(() => {
     if (loading) return;
 
-    // Not authenticated
     if (!user) {
       router.replace("/login");
-      return;
     }
-    // Authenticated - redirect to dashboard
-    router.replace("/dashboard");
   }, [loading, user, router]);
 
   /**

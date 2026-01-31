@@ -31,10 +31,15 @@ export default function AccountGroupsLayout() {
   }, [loadGroups, loadAccounts]);
 
   /* -------------------------------------------
-   * Select first group once groups load
+   * Select first group once groups load, or if
+   * current active group no longer exists
    * ------------------------------------------- */
   useEffect(() => {
-    if (groups.length > 0 && activeGroupId === null) {
+    if (groups.length === 0) {
+      setActiveGroupId(null);
+      return;
+    }
+    if (activeGroupId === null || !groups.find((g) => g.id === activeGroupId)) {
       setActiveGroupId(groups[0].id);
     }
   }, [groups, activeGroupId]);
@@ -87,6 +92,7 @@ export default function AccountGroupsLayout() {
             group={activeGroup}
             accounts={activeGroupAccounts}
             onAddAccount={() => setShowAccountModal(true)}
+            onGroupDeleted={() => setActiveGroupId(null)}
           />
         )}
       </div>

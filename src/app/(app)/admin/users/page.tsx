@@ -60,17 +60,17 @@ export default function AdminUsersPage() {
   const [paymentsLoading, setPaymentsLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
-  // Check admin access
+  // Check admin access & load users only when confirmed admin
   useEffect(() => {
-    if (!authLoading && user && !user.is_admin) {
-      router.replace("/dashboard");
-    }
-  }, [authLoading, user, router]);
+    if (authLoading) return;
 
-  // Load users
-  useEffect(() => {
+    if (!user || !user.is_admin) {
+      router.replace("/dashboard");
+      return;
+    }
+
     loadUsers();
-  }, []);
+  }, [authLoading, user, router]);
 
   async function loadUsers() {
     setLoading(true);
