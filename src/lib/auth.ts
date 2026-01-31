@@ -92,6 +92,41 @@ export async function logoutRequest(): Promise<void> {
   });
 }
 
+export async function forgotPasswordRequest(email: string): Promise<void> {
+  const res = await fetch(`${API_URL}/auth/forgot-password`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email }),
+  });
+
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.detail || "Failed to send reset email");
+  }
+}
+
+export async function resetPasswordRequest(
+  token: string,
+  password: string
+): Promise<void> {
+  const res = await fetch(`${API_URL}/auth/reset-password`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ token, password }),
+  });
+
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.detail || "Failed to reset password");
+  }
+}
+
 export const auth = {
   async login(email: string, password: string) {
     return await loginRequest(email, password);

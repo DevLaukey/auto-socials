@@ -26,6 +26,7 @@ export default function LoginPage() {
       linkDescription="Don't have an account?"
       linkText="Create one"
       linkHref="/register"
+      forgotPasswordHref="/forgot-password"
     />
   );
 }

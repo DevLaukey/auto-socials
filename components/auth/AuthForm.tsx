@@ -15,6 +15,7 @@ interface AuthFormProps {
   linkHref: string;
   linkDescription: string;
   showConfirmPassword?: boolean;
+  forgotPasswordHref?: string;
 }
 
 export default function AuthForm({
@@ -26,6 +27,7 @@ export default function AuthForm({
   linkHref,
   linkDescription,
   showConfirmPassword = false,
+  forgotPasswordHref,
 }: AuthFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -115,6 +117,16 @@ export default function AuthForm({
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+              {forgotPasswordHref && (
+                <div className="mt-1 text-right">
+                  <Link
+                    href={forgotPasswordHref}
+                    className="text-sm text-blue-600 hover:text-blue-500"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+              )}
             </div>
 
             {showConfirmPassword && (

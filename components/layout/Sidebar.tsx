@@ -16,6 +16,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
+import { useAuthStore } from "@/src/store/authStore";
 
 const navItems = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -35,6 +36,7 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const user = useAuthStore((s) => s.user);
 
   return (
     <aside
@@ -76,28 +78,34 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         })}
       </nav>
 
-      <Separator className="my-2 bg-slate-700" />
+      {user?.is_admin && (
+        <>
+          <Separator className="my-2 bg-slate-700" />
 
-      {/* Admin Section */}
-      <div className="px-4 pb-4 space-y-1">
-        <p className="text-xs text-slate-400 px-3">Admin</p>
-        <Link
-          href="/admin/users"
-          onClick={onClose}
-          className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-slate-800 text-sm"
-        >
-          <Users size={18} />
-          Users
-        </Link>
-        <Link
-          href="/admin/logs"
-          onClick={onClose}
-          className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-slate-800 text-sm"
-        >
-          <FileText size={18} />
-          System Logs
-        </Link>
-      </div>
+          {/* Admin Section */}
+          <div className="px-4 pb-4 space-y-1">
+            <p className="text-xs text-slate-400 px-3">Admin</p>
+            <Link
+              href="/admin/users"
+              onClick={onClose}
+              className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm
+                ${pathname === "/admin/users" ? "bg-slate-800 text-white" : "hover:bg-slate-800"}`}
+            >
+              <Users size={18} />
+              Users
+            </Link>
+            <Link
+              href="/admin/logs"
+              onClick={onClose}
+              className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm
+                ${pathname === "/admin/logs" ? "bg-slate-800 text-white" : "hover:bg-slate-800"}`}
+            >
+              <FileText size={18} />
+              System Logs
+            </Link>
+          </div>
+        </>
+      )}
     </aside>
   );
 }
