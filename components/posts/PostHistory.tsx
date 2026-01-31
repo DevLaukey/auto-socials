@@ -1,241 +1,491 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import api from "@/lib/api";
-import ScheduleModal from "./modals/ScheduleModal";
-import type { Account } from "@/src/store/accountsStore";
-
-interface Post {
-  id: number;
-  title?: string;
-  description?: string;
-  status: string;
-  scheduled_time?: string | null;
-  created_at: string;
-  accounts?: Account[];
-}
+import { RefreshCw, Eye, Clock, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogHeader,
+  DialogTitle,
+  DialogContent,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import {
+  Post,
+  PostStatus,
+  listPosts,
+  getPost,
+  getPostStatus,
+  executePost,
+  cancelPost,
+  reschedulePost,
+  repostPost,
+} from "@/src/lib/posts";
 
 export default function PostHistory() {
   const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [editingPost, setEditingPost] = useState<Post | null>(null);
-  const [viewPost, setViewPost] = useState<Post | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<number | null>(null);
 
-  const loadPosts = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get("/posts");
-      setPosts(res.data);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // View post details dialog
+  const [viewPost, setViewPost] = useState<Post | null>(null);
+  const [postStatus, setPostStatus] = useState<PostStatus | null>(null);
+  const [statusLoading, setStatusLoading] = useState(false);
+
+  // Reschedule dialog
+  const [rescheduleDialog, setRescheduleDialog] = useState<Post | null>(null);
+  const [newScheduleTime, setNewScheduleTime] = useState("");
 
   useEffect(() => {
     loadPosts();
   }, []);
 
-  const executeNow = async (postId: number) => {
-    await api.post(`/posts/${postId}/execute`);
-    loadPosts();
-  };
+  async function loadPosts() {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await listPosts();
+      setPosts(data);
+    } catch (err: any) {
+      setError(err.message || "Failed to load posts");
+    } finally {
+      setLoading(false);
+    }
+  }
 
-  const cancelSchedule = async (postId: number) => {
-    await api.patch(`/posts/${postId}/cancel`);
-    loadPosts();
-  };
+  async function handleViewPost(post: Post) {
+    setViewPost(post);
+    setStatusLoading(true);
+    setPostStatus(null);
+    try {
+      const [fullPost, status] = await Promise.all([
+        getPost(post.id),
+        getPostStatus(post.id),
+      ]);
+      setViewPost(fullPost);
+      setPostStatus(status);
+    } catch (err: any) {
+      console.error("Failed to load post details:", err);
+    } finally {
+      setStatusLoading(false);
+    }
+  }
 
-  const renderActions = (post: Post) => {
+  async function handleExecute(postId: number) {
+    setActionLoading(postId);
+    try {
+      await executePost(postId);
+      await loadPosts();
+    } catch (err: any) {
+      alert(err.message || "Failed to execute post");
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  async function handleCancel(postId: number) {
+    if (!confirm("Cancel this scheduled post?")) return;
+    setActionLoading(postId);
+    try {
+      await cancelPost(postId);
+      await loadPosts();
+    } catch (err: any) {
+      alert(err.message || "Failed to cancel post");
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  async function handleReschedule() {
+    if (!rescheduleDialog || !newScheduleTime) return;
+    setActionLoading(rescheduleDialog.id);
+    try {
+      await reschedulePost(rescheduleDialog.id, newScheduleTime);
+      await loadPosts();
+      setRescheduleDialog(null);
+      setNewScheduleTime("");
+    } catch (err: any) {
+      alert(err.message || "Failed to reschedule post");
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  async function handleRepost(postId: number) {
+    setActionLoading(postId);
+    try {
+      await repostPost(postId);
+      await loadPosts();
+    } catch (err: any) {
+      alert(err.message || "Failed to repost");
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  function openRescheduleDialog(post: Post) {
+    setRescheduleDialog(post);
+    setNewScheduleTime(
+      post.scheduled_time ? post.scheduled_time.slice(0, 16) : ""
+    );
+  }
+
+  function getStatusBadge(status: string) {
+    const s = status.toLowerCase();
+    switch (s) {
+      case "scheduled":
+        return <Badge variant="info">Scheduled</Badge>;
+      case "pending":
+        return <Badge variant="warning">Pending</Badge>;
+      case "executing":
+        return <Badge variant="warning">Executing</Badge>;
+      case "completed":
+      case "success":
+        return <Badge variant="success">Completed</Badge>;
+      case "failed":
+        return <Badge variant="danger">Failed</Badge>;
+      case "cancelled":
+        return <Badge variant="default">Cancelled</Badge>;
+      default:
+        return <Badge variant="default">{status}</Badge>;
+    }
+  }
+
+  function renderActions(post: Post) {
     const status = post.status.toLowerCase();
+    const isLoading = actionLoading === post.id;
 
     if (status === "scheduled") {
       return (
         <div className="flex gap-2">
-          <button
+          <Button
+            size="sm"
+            variant="outline"
             onClick={(e) => {
               e.stopPropagation();
-              executeNow(post.id);
+              handleExecute(post.id);
             }}
-            className="px-2 py-1 text-xs bg-green-600 text-white rounded"
+            disabled={isLoading}
           >
-            Post now
-          </button>
-
-          <button
+            Post Now
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
             onClick={(e) => {
               e.stopPropagation();
-              setEditingPost(post);
+              openRescheduleDialog(post);
             }}
-            className="px-2 py-1 text-xs bg-blue-600 text-white rounded"
+            disabled={isLoading}
           >
-            Edit
-          </button>
-
-          <button
+            Reschedule
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-red-600 hover:text-red-700"
             onClick={(e) => {
               e.stopPropagation();
-              cancelSchedule(post.id);
+              handleCancel(post.id);
             }}
-            className="px-2 py-1 text-xs bg-red-600 text-white rounded"
+            disabled={isLoading}
           >
             Cancel
-          </button>
+          </Button>
         </div>
       );
     }
 
     if (status === "pending") {
       return (
-        <button
+        <Button
+          size="sm"
+          variant="outline"
           onClick={(e) => {
             e.stopPropagation();
-            executeNow(post.id);
+            handleExecute(post.id);
           }}
-          className="px-2 py-1 text-xs bg-orange-600 text-white rounded"
+          disabled={isLoading}
         >
-          Retry
-        </button>
+          Execute
+        </Button>
       );
     }
-    const repostNow = async (postId: number) => {
-      await api.post(`/posts/${postId}/repost`);
-      loadPosts();
-    };
 
     if (status === "failed") {
       return (
         <div className="flex gap-2">
-          <button
+          <Button
+            size="sm"
+            variant="outline"
             onClick={(e) => {
               e.stopPropagation();
-              repostNow(post.id);
+              handleRepost(post.id);
             }}
-            className="px-2 py-1 text-xs bg-orange-600 text-white rounded"
+            disabled={isLoading}
           >
-            Repost
-          </button>
-
-          <button
+            Retry
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
             onClick={(e) => {
               e.stopPropagation();
-              setEditingPost(post);
+              openRescheduleDialog(post);
             }}
-            className="px-2 py-1 text-xs bg-blue-600 text-white rounded"
+            disabled={isLoading}
           >
             Reschedule
-          </button>
+          </Button>
         </div>
       );
     }
 
-    return <span className="text-muted-foreground">—</span>;
-  };
+    return <span className="text-gray-400">-</span>;
+  }
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold">Post History</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Post History</h2>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={loadPosts}
+          disabled={loading}
+        >
+          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+          <span className="ml-2">Refresh</span>
+        </Button>
+      </div>
 
-      {loading && <p>Loading...</p>}
-
-      <table className="w-full border">
-        <thead>
-          <tr className="bg-muted text-left text-sm">
-            <th className="p-2">Title</th>
-            <th className="p-2">Status</th>
-            <th className="p-2">Scheduled</th>
-            <th className="p-2">Actions</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {posts.map((post) => (
-            <tr
-              key={post.id}
-              className="border-t cursor-pointer hover:bg-muted/50"
-              onClick={() => setViewPost(post)}
-            >
-              <td className="p-2">{post.title || "—"}</td>
-              <td className="p-2 capitalize">{post.status}</td>
-              <td className="p-2">
-                {post.scheduled_time
-                  ? new Date(post.scheduled_time).toLocaleString()
-                  : "—"}
-              </td>
-              <td className="p-2">{renderActions(post)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {/* DETAILS MODAL */}
-      {viewPost && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg w-full max-w-md p-4 space-y-3">
-            <div className="flex justify-between items-center">
-              <h3 className="font-semibold text-lg">Post Details</h3>
-              <button
-                onClick={() => setViewPost(null)}
-                className="text-gray-500 hover:text-black"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="text-sm space-y-2">
-              <div>
-                <strong>Title:</strong>
-                <div>{viewPost.title || "—"}</div>
-              </div>
-
-              <div>
-                <strong>Description:</strong>
-                <div className="whitespace-pre-wrap">
-                  {viewPost.description || "—"}
-                </div>
-              </div>
-
-              <div>
-                <strong>Status:</strong> {viewPost.status}
-              </div>
-
-              <div>
-                <strong>Created:</strong>{" "}
-                {new Date(viewPost.created_at).toLocaleString()}
-              </div>
-
-              <div>
-                <strong>Scheduled:</strong>{" "}
-                {viewPost.scheduled_time
-                  ? new Date(viewPost.scheduled_time).toLocaleString()
-                  : "—"}
-              </div>
-
-              <div>
-                <strong>Accounts:</strong>
-                <ul className="list-disc list-inside">
-                  {viewPost.accounts?.length ? (
-                    viewPost.accounts.map((acc) => (
-                      <li key={acc.id}>
-                        {acc.platform} — {acc.username}
-                      </li>
-                    ))
-                  ) : (
-                    <li>—</li>
-                  )}
-                </ul>
-              </div>
-            </div>
-          </div>
+      {error && (
+        <div className="rounded-md bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">
+          {error}
         </div>
       )}
 
-      {editingPost && (
-        <ScheduleModal
-          post={editingPost}
-          onClose={() => setEditingPost(null)}
-          onUpdated={loadPosts}
-        />
-      )}
+      <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Title
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Status
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Scheduled
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Created
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                    Loading posts...
+                  </td>
+                </tr>
+              ) : posts.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                    No posts found. Create your first post to get started.
+                  </td>
+                </tr>
+              ) : (
+                posts.map((post) => (
+                  <tr
+                    key={post.id}
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() => handleViewPost(post)}
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-900">
+                          {post.title || "Untitled"}
+                        </span>
+                        <Eye
+                          size={14}
+                          className="text-gray-400 hover:text-gray-600"
+                        />
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">{getStatusBadge(post.status)}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">
+                      {post.scheduled_time ? (
+                        <div className="flex items-center gap-1">
+                          <Clock size={14} />
+                          {new Date(post.scheduled_time).toLocaleString()}
+                        </div>
+                      ) : (
+                        "-"
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-500">
+                      {new Date(post.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {renderActions(post)}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* View Post Details Dialog */}
+      <Dialog open={!!viewPost} onOpenChange={() => setViewPost(null)}>
+        <DialogClose onClose={() => setViewPost(null)} />
+        <DialogHeader>
+          <DialogTitle>Post Details</DialogTitle>
+        </DialogHeader>
+        <DialogContent>
+          {viewPost && (
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-gray-500">Title</label>
+                <p className="text-gray-900">{viewPost.title || "Untitled"}</p>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-500">
+                  Description
+                </label>
+                <p className="text-gray-900 whitespace-pre-wrap">
+                  {viewPost.description || "-"}
+                </p>
+              </div>
+
+              {viewPost.hashtags && (
+                <div>
+                  <label className="text-sm font-medium text-gray-500">
+                    Hashtags
+                  </label>
+                  <p className="text-gray-900">{viewPost.hashtags}</p>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-500">
+                    Status
+                  </label>
+                  <div className="mt-1">{getStatusBadge(viewPost.status)}</div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-gray-500">
+                    Created
+                  </label>
+                  <p className="text-gray-900">
+                    {new Date(viewPost.created_at).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+
+              {viewPost.scheduled_time && (
+                <div>
+                  <label className="text-sm font-medium text-gray-500">
+                    Scheduled For
+                  </label>
+                  <p className="text-gray-900">
+                    {new Date(viewPost.scheduled_time).toLocaleString()}
+                  </p>
+                </div>
+              )}
+
+              {viewPost.accounts && viewPost.accounts.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium text-gray-500">
+                    Accounts
+                  </label>
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    {viewPost.accounts.map((acc) => (
+                      <Badge key={acc.id} variant="default">
+                        {acc.platform} - {acc.username}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {statusLoading ? (
+                <div className="text-gray-500 text-sm">Loading status...</div>
+              ) : postStatus?.error_message ? (
+                <div className="rounded-md bg-red-50 border border-red-200 p-3">
+                  <div className="flex items-center gap-2 text-red-700">
+                    <AlertCircle size={16} />
+                    <span className="font-medium">Error</span>
+                  </div>
+                  <p className="text-sm text-red-600 mt-1">
+                    {postStatus.error_message}
+                  </p>
+                </div>
+              ) : null}
+
+              {postStatus?.executed_at && (
+                <div>
+                  <label className="text-sm font-medium text-gray-500">
+                    Executed At
+                  </label>
+                  <p className="text-gray-900">
+                    {new Date(postStatus.executed_at).toLocaleString()}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+        <DialogFooter>
+          <Button onClick={() => setViewPost(null)}>Close</Button>
+        </DialogFooter>
+      </Dialog>
+
+      {/* Reschedule Dialog */}
+      <Dialog
+        open={!!rescheduleDialog}
+        onOpenChange={() => setRescheduleDialog(null)}
+      >
+        <DialogClose onClose={() => setRescheduleDialog(null)} />
+        <DialogHeader>
+          <DialogTitle>Reschedule Post</DialogTitle>
+        </DialogHeader>
+        <DialogContent>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            New Schedule Time
+          </label>
+          <Input
+            type="datetime-local"
+            value={newScheduleTime}
+            onChange={(e) => setNewScheduleTime(e.target.value)}
+          />
+        </DialogContent>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setRescheduleDialog(null)}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleReschedule}
+            disabled={!newScheduleTime || actionLoading !== null}
+          >
+            {actionLoading ? "Saving..." : "Save"}
+          </Button>
+        </DialogFooter>
+      </Dialog>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useAccountsStore } from "@/src/store/accountsStore";
 import PlatformSelector from "../widgets/PlatformSelector";
 import PostMetadataModal from "../modals/PostMetadataModal";
 import PlatformAccounts from "../widgets/PlatformAccounts";
+import { createPost } from "@/src/lib/posts";
 import api from "@/lib/api";
 
 type Platform = "instagram" | "youtube" | "twitter";
@@ -98,7 +99,7 @@ export default function CreatePostView() {
           data.instagram_type === "post" ? "feed" : data.instagram_type;
       }
 
-      await api.post("/posts/", payload);
+      await createPost(payload);
 
       setMetadata({});
       setActivePlatform(null);
