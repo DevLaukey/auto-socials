@@ -22,7 +22,7 @@ export default function AddAccountView({ onClose }: AddAccountViewProps) {
     setError(null);
 
     try {
-      await apiFetch("/social-accounts/connect", {
+      await apiFetch("/social-accounts/", {
         method: "POST",
         body: JSON.stringify({
           platform,
@@ -35,10 +35,8 @@ export default function AddAccountView({ onClose }: AddAccountViewProps) {
       if (typeof onClose === "function") {
         onClose();
       }
-    } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "Failed to connect account",
-      );
+    } catch (err: any) {
+      setError(err.message || "Failed to connect account");
     } finally {
       setLoading(false);
     }

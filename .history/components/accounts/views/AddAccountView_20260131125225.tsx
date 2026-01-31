@@ -36,9 +36,7 @@ export default function AddAccountView({ onClose }: AddAccountViewProps) {
         onClose();
       }
     } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "Failed to connect account",
-      );
+      setError(err instanceof Error ? err.message : "Failed to connect account");
     } finally {
       setLoading(false);
     }

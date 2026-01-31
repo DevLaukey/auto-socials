@@ -24,7 +24,7 @@ export default function AddAccountModal({
 
   const [mode, setMode] = useState<"existing" | "new">("existing");
   const [selectedAccountId, setSelectedAccountId] = useState<number | null>(
-    null,
+    null
   );
 
   const [platform, setPlatform] = useState("YouTube");
@@ -44,7 +44,7 @@ export default function AddAccountModal({
    * ------------------------------------------- */
   const availableAccounts: Account[] = useMemo(() => {
     const existingIds = new Set(
-      (groupAccounts[groupId] ?? []).map((a) => a.id),
+      (groupAccounts[groupId] ?? []).map((a) => a.id)
     );
 
     return accounts.filter((acc) => !existingIds.has(acc.id));
@@ -75,7 +75,7 @@ export default function AddAccountModal({
     setSubmitting(true);
     try {
       // 1️⃣ Create account
-      const newAccount = await apiFetch("/social-accounts/connect", {
+      const newAccount = await apiFetch("/social-accounts/", {
         method: "POST",
         body: JSON.stringify({
           platform,
@@ -135,7 +135,7 @@ export default function AddAccountModal({
                 value={selectedAccountId ?? ""}
                 onChange={(e) =>
                   setSelectedAccountId(
-                    e.target.value ? Number(e.target.value) : null,
+                    e.target.value ? Number(e.target.value) : null
                   )
                 }
               >
