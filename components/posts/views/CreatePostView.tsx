@@ -19,6 +19,10 @@ export default function CreatePostView() {
   const [selectedAccountIds, setSelectedAccountIds] = useState<number[]>([]);
   const [selectedGroupIds, setSelectedGroupIds] = useState<number[]>([]);
   const [executing, setExecuting] = useState(false);
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   useEffect(() => {
     if (accounts.length === 0) {
@@ -29,6 +33,7 @@ export default function CreatePostView() {
   const handlePlatformChange = (platform: Platform) => {
     setActivePlatform(platform);
     setShowModal(true);
+    setMessage(null);
   };
 
   const handleSaveMetadata = (data: any) => {
@@ -53,15 +58,17 @@ export default function CreatePostView() {
     if (!activePlatform) return;
 
     if (selectedAccountIds.length === 0 && selectedGroupIds.length === 0) {
-      alert("Select at least one account or group.");
+      setMessage({ type: "error", text: "Select at least one account or group." });
       return;
     }
 
     const data = metadata[activePlatform];
     if (!data?.media_file) {
-      alert("No media uploaded.");
+      setMessage({ type: "error", text: "No media uploaded." });
       return;
     }
+
+    setMessage(null);
 
     try {
       setExecuting(true);
@@ -106,10 +113,10 @@ export default function CreatePostView() {
       setSelectedAccountIds([]);
       setSelectedGroupIds([]);
 
-      alert("Post created successfully");
+      setMessage({ type: "success", text: "Post created successfully!" });
     } catch (err) {
       console.error(err);
-      alert("Failed to create post");
+      setMessage({ type: "error", text: "Failed to create post." });
     } finally {
       setExecuting(false);
     }
@@ -129,7 +136,19 @@ export default function CreatePostView() {
         <PlatformSelector onChange={handlePlatformChange} />
       </div>
 
-      {!activePlatform && (
+      {message && (
+        <div
+          className={`rounded-md px-4 py-3 text-sm ${
+            message.type === "success"
+              ? "bg-green-50 border border-green-200 text-green-700"
+              : "bg-red-50 border border-red-200 text-red-700"
+          }`}
+        >
+          {message.text}
+        </div>
+      )}
+
+      {!activePlatform && !message && (
         <div className="border border-dashed rounded-lg p-8 text-center text-sm text-muted-foreground">
           Select a platform above to start creating a post.
         </div>
@@ -150,6 +169,53 @@ export default function CreatePostView() {
             <span className="text-xs px-2 py-1 rounded bg-muted capitalize">
               {activePlatform}
             </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            {metadata[activePlatform].title && (
+              <div>
+                <span className="text-muted-foreground">Title:</span>{" "}
+                <span className="font-medium">{metadata[activePlatform].title}</span>
+              </div>
+            )}
+            {metadata[activePlatform].description && (
+              <div className="col-span-2">
+                <span className="text-muted-foreground">Description:</span>{" "}
+                <span>{metadata[activePlatform].description}</span>
+              </div>
+            )}
+            {metadata[activePlatform].hashtags && (
+              <div>
+                <span className="text-muted-foreground">Hashtags:</span>{" "}
+                <span>{metadata[activePlatform].hashtags}</span>
+              </div>
+            )}
+            {metadata[activePlatform].scheduled_time && (
+              <div>
+                <span className="text-muted-foreground">Scheduled:</span>{" "}
+                <span>
+                  {new Date(metadata[activePlatform].scheduled_time).toLocaleString()}
+                </span>
+              </div>
+            )}
+            {metadata[activePlatform].privacy_status && (
+              <div>
+                <span className="text-muted-foreground">Privacy:</span>{" "}
+                <span className="capitalize">{metadata[activePlatform].privacy_status}</span>
+              </div>
+            )}
+            {metadata[activePlatform].instagram_type && (
+              <div>
+                <span className="text-muted-foreground">Type:</span>{" "}
+                <span className="capitalize">{metadata[activePlatform].instagram_type}</span>
+              </div>
+            )}
+            {metadata[activePlatform].media_file && (
+              <div>
+                <span className="text-muted-foreground">Media:</span>{" "}
+                <span className="text-green-600">Uploaded</span>
+              </div>
+            )}
           </div>
 
           <PlatformAccounts

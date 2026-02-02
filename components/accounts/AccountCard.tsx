@@ -6,6 +6,8 @@ export default function AccountCard({ account }: { account: Account }) {
   const loadAccounts = useAccountsStore((s) => s.loadAccounts);
 
   const handleDisconnect = async () => {
+    if (!confirm(`Disconnect ${account.platform} account "${account.username}"?`))
+      return;
     try {
       await disconnectAccount(account.id);
       await loadAccounts();

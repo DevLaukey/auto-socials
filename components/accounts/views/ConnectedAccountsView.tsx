@@ -12,7 +12,7 @@ export default function ConnectedAccountsView({
   onConnect: () => void;
   onGroups: () => void;
 }) {
-  const { accounts, loadAccounts } = useAccountsStore();
+  const { accounts, loadingAccounts, loadAccounts } = useAccountsStore();
 
   useEffect(() => {
     loadAccounts();
@@ -21,7 +21,14 @@ export default function ConnectedAccountsView({
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-lg font-semibold">Connected Accounts</h2>
+        <h2 className="text-lg font-semibold">
+          Connected Accounts
+          {!loadingAccounts && accounts.length > 0 && (
+            <span className="ml-2 text-sm font-normal text-muted-foreground">
+              ({accounts.length})
+            </span>
+          )}
+        </h2>
 
         <div className="flex gap-2">
           <Button
@@ -35,7 +42,9 @@ export default function ConnectedAccountsView({
         </div>
       </div>
 
-      {accounts.length === 0 ? (
+      {loadingAccounts ? (
+        <p className="text-sm text-muted-foreground">Loading accounts...</p>
+      ) : accounts.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           No accounts connected yet.
         </p>

@@ -114,6 +114,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       return;
     }
 
+    console.log("User role:", user.is_admin ? "Admin" : "User", user);
+
     set({
       user: {
         ...user,

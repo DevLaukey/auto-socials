@@ -49,7 +49,11 @@ export default function PostHistory() {
     setError(null);
     try {
       const data = await listPosts();
-      setPosts(data);
+      const sorted = (data ?? []).sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      setPosts(sorted);
     } catch (err: any) {
       setError(err.message || "Failed to load posts");
     } finally {
@@ -202,17 +206,30 @@ export default function PostHistory() {
 
     if (status === "pending") {
       return (
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleExecute(post.id);
-          }}
-          disabled={isLoading}
-        >
-          Execute
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleRepost(post.id);
+            }}
+            disabled={isLoading}
+          >
+            Repost
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={(e) => {
+              e.stopPropagation();
+              openRescheduleDialog(post);
+            }}
+            disabled={isLoading}
+          >
+            Reschedule
+          </Button>
+        </div>
       );
     }
 
@@ -278,6 +295,9 @@ export default function PostHistory() {
                   Title
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Platform
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Status
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
@@ -294,13 +314,13 @@ export default function PostHistory() {
             <tbody className="divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
                     Loading posts...
                   </td>
                 </tr>
               ) : posts.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
                     No posts found. Create your first post to get started.
                   </td>
                 </tr>
@@ -321,6 +341,19 @@ export default function PostHistory() {
                           className="text-gray-400 hover:text-gray-600"
                         />
                       </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {post.accounts && post.accounts.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {post.accounts.map((acc) => (
+                            <Badge key={acc.id} variant="default">
+                              {acc.platform}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 text-sm">-</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">{getStatusBadge(post.status)}</td>
                     <td className="px-4 py-3 text-sm text-gray-600">

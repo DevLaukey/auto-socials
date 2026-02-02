@@ -11,6 +11,11 @@ export default function GroupList({
 }) {
   return (
     <div className="bg-white border rounded-xl p-3 space-y-1">
+      {groups.length === 0 && (
+        <p className="text-sm text-muted-foreground text-center py-4">
+          No groups yet. Create one to get started.
+        </p>
+      )}
       {groups.map((group) => {
         const count = groupAccounts[group.id]?.length ?? 0;
 

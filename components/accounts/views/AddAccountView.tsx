@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { apiFetch } from "@/src/lib/api";
+import { useAccountsStore } from "@/src/store/accountsStore";
 
 type AddAccountViewProps = {
   onClose?: () => void; // ✅ optional
 };
 
 export default function AddAccountView({ onClose }: AddAccountViewProps) {
+  const loadAccounts = useAccountsStore((s) => s.loadAccounts);
   const [platform, setPlatform] = useState("YouTube");
   const [accountUsername, setAccountUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -31,7 +33,9 @@ export default function AddAccountView({ onClose }: AddAccountViewProps) {
         }),
       });
 
-      // ✅ SAFE CLOSE
+      // Refresh accounts store so list updates immediately
+      await loadAccounts();
+
       if (typeof onClose === "function") {
         onClose();
       }

@@ -144,7 +144,14 @@ export default function SettingsPage() {
           <div className="flex items-center gap-3">
             <Globe className="text-gray-500" size={20} />
             <div>
-              <h2 className="font-semibold text-gray-900">Proxies</h2>
+              <h2 className="font-semibold text-gray-900">
+                Proxies
+                {!loading && proxies.length > 0 && (
+                  <span className="ml-2 text-sm font-normal text-gray-500">
+                    ({proxies.length})
+                  </span>
+                )}
+              </h2>
               <p className="text-sm text-gray-500">
                 Manage proxy servers for your requests
               </p>
@@ -213,6 +220,9 @@ export default function SettingsPage() {
                           Auth: {proxy.username}
                         </p>
                       )}
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        Added {new Date(proxy.created_at).toLocaleDateString()}
+                      </p>
                     </div>
                   </div>
 

@@ -58,7 +58,7 @@ export default function PostMetadataModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
       <div className="bg-white w-full max-w-lg rounded-lg flex flex-col max-h-[90vh]">
         <div className="px-4 py-3 border-b">
           <h3 className="text-lg font-semibold capitalize">
