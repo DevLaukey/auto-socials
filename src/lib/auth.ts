@@ -1,6 +1,15 @@
 // automation-frontend/src/lib/auth.ts
 
-const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+// Ensure HTTPS in production to avoid mixed content errors
+function getApiUrl() {
+  const url = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+  if (typeof window !== "undefined" && window.location.protocol === "https:" && url.startsWith("http://")) {
+    return url.replace("http://", "https://");
+  }
+  return url;
+}
+
+const API_URL = getApiUrl();
 
 /* =======================
    Types
