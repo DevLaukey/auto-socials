@@ -88,3 +88,36 @@ export async function revokeAdmin(userId: number): Promise<void> {
     method: "POST",
   });
 }
+
+// =====================================================
+// POST PAYMENT MANAGEMENT
+// =====================================================
+
+export interface PostPayment {
+  payment_id: string;
+  user_id: number;
+  user_email?: string;
+  status: "pending" | "paid" | "failed";
+  is_paid: boolean;
+  amount: number;
+  currency: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// List all post payments (admin only)
+export async function listAllPostPayments(
+  status?: "pending" | "paid" | "failed"
+): Promise<PostPayment[]> {
+  const query = status ? `?status=${status}` : "";
+  return adminFetch(`/admin/post-payments${query}`);
+}
+
+// Get a specific user's post payments (admin only)
+export async function getUserPostPayments(
+  userId: number,
+  status?: "pending" | "paid" | "failed"
+): Promise<PostPayment[]> {
+  const query = status ? `?status=${status}` : "";
+  return adminFetch(`/admin/users/${userId}/post-payments${query}`);
+}

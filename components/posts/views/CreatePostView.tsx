@@ -5,13 +5,15 @@ import { useAccountsStore } from "@/src/store/accountsStore";
 import PlatformSelector from "../widgets/PlatformSelector";
 import PostMetadataModal from "../modals/PostMetadataModal";
 import PlatformAccounts from "../widgets/PlatformAccounts";
-import { createPost } from "@/src/lib/posts";
+import { createPost, initiatePostPayment } from "@/src/lib/posts";
 import api from "@/lib/api";
+import { useAuthStore } from "@/src/store/authStore";
 
 type Platform = "instagram" | "youtube" | "twitter";
 
 export default function CreatePostView() {
   const { accounts, loadAccounts } = useAccountsStore();
+  const { user } = useAuthStore();
 
   const [activePlatform, setActivePlatform] = useState<Platform | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -20,9 +22,12 @@ export default function CreatePostView() {
   const [selectedGroupIds, setSelectedGroupIds] = useState<number[]>([]);
   const [executing, setExecuting] = useState(false);
   const [message, setMessage] = useState<{
-    type: "success" | "error";
+    type: "success" | "error" | "info";
     text: string;
   } | null>(null);
+
+  // Check if user has an active subscription
+  const hasActiveSubscription = user?.subscription?.is_active === true;
 
   useEffect(() => {
     if (accounts.length === 0) {
@@ -106,6 +111,25 @@ export default function CreatePostView() {
           data.instagram_type === "post" ? "feed" : data.instagram_type;
       }
 
+      // =====================================================
+      // PAYMENT FLOW: Check subscription status
+      // =====================================================
+      if (!hasActiveSubscription) {
+        // User needs to pay - initiate payment
+        const paymentResponse = await initiatePostPayment(payload);
+
+        // Show message and redirect to payment
+        setMessage({
+          type: "info",
+          text: "Redirecting to payment...",
+        });
+
+        // Redirect to payment URL
+        window.location.href = paymentResponse.payment_url;
+        return;
+      }
+
+      // User has subscription - create post directly
       await createPost(payload);
 
       setMetadata({});
@@ -114,9 +138,9 @@ export default function CreatePostView() {
       setSelectedGroupIds([]);
 
       setMessage({ type: "success", text: "Post created successfully!" });
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setMessage({ type: "error", text: "Failed to create post." });
+      setMessage({ type: "error", text: err.message || "Failed to create post." });
     } finally {
       setExecuting(false);
     }
@@ -141,10 +165,19 @@ export default function CreatePostView() {
           className={`rounded-md px-4 py-3 text-sm ${
             message.type === "success"
               ? "bg-green-50 border border-green-200 text-green-700"
+              : message.type === "info"
+              ? "bg-blue-50 border border-blue-200 text-blue-700"
               : "bg-red-50 border border-red-200 text-red-700"
           }`}
         >
           {message.text}
+        </div>
+      )}
+
+      {/* Subscription status notice */}
+      {!hasActiveSubscription && (
+        <div className="rounded-md px-4 py-3 text-sm bg-amber-50 border border-amber-200 text-amber-700">
+          You don&apos;t have an active subscription. A payment of 100 KES will be required to create each post.
         </div>
       )}
 
@@ -232,7 +265,11 @@ export default function CreatePostView() {
               disabled={executing}
               className="px-5 py-2 rounded bg-black text-white text-sm disabled:opacity-50"
             >
-              {executing ? "Executing..." : "Execute"}
+              {executing
+                ? "Processing..."
+                : hasActiveSubscription
+                ? "Execute"
+                : "Pay & Execute (100 KES)"}
             </button>
           </div>
         </div>

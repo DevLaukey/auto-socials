@@ -12,6 +12,7 @@ import {
   Send,
   FileText,
   X,
+  CreditCard,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -22,6 +23,7 @@ const navItems = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
   { label: "Accounts", href: "/accounts", icon: Share2 },
   { label: "Posts", href: "/posts", icon: Send },
+  { label: "Payments", href: "/payments", icon: CreditCard },
   { label: "AI Clips", href: "/clips", icon: Scissors },
   { label: "Notifications", href: "/notifications", icon: Bell },
   { label: "Messages", href: "/messages", icon: MessageSquare },
@@ -93,6 +95,15 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             >
               <Users size={18} />
               Users
+            </Link>
+            <Link
+              href="/admin/payments"
+              onClick={onClose}
+              className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm
+                ${pathname === "/admin/payments" ? "bg-slate-800 text-white" : "hover:bg-slate-800"}`}
+            >
+              <CreditCard size={18} />
+              Post Payments
             </Link>
             <Link
               href="/admin/logs"

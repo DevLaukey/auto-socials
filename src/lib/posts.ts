@@ -121,3 +121,56 @@ export async function repostPost(postId: number): Promise<void> {
     method: "POST",
   });
 }
+
+// =====================================================
+// PAYMENT ENDPOINTS
+// =====================================================
+
+export interface PaymentInitiateResponse {
+  payment_id: string;
+  payment_url: string;
+  message: string;
+}
+
+export interface PaymentStatus {
+  payment_id: string;
+  status: "pending" | "paid" | "failed";
+  is_paid: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PostPayment {
+  payment_id: string;
+  status: "pending" | "paid" | "failed";
+  is_paid: boolean;
+  amount: number;
+  currency: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Initiate payment for creating a post
+export async function initiatePostPayment(
+  data: CreatePostData
+): Promise<PaymentInitiateResponse> {
+  return postsFetch("/posts/initiate-payment", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+// Check payment status by payment ID
+export async function getPaymentStatus(
+  paymentId: string
+): Promise<PaymentStatus> {
+  return postsFetch(`/posts/payment-status/${paymentId}`);
+}
+
+// List all user's post payments
+export async function getMyPayments(
+  status?: "pending" | "paid" | "failed"
+): Promise<PostPayment[]> {
+  const query = status ? `?status=${status}` : "";
+  return postsFetch(`/posts/my-payments${query}`);
+}
