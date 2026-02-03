@@ -93,7 +93,7 @@ export async function logoutRequest(): Promise<void> {
 }
 
 export async function forgotPasswordRequest(email: string): Promise<void> {
-  const res = await fetch(`${API_URL}/auth/password-reset-request/`, {
+  const res = await fetch(`${API_URL}/auth/forgot-password`, {
     method: "POST",
     credentials: "include",
     headers: {
