@@ -118,11 +118,20 @@ export default function SubscriptionPage() {
 
   return (
     <div className="max-w-7xl mx-auto p-8 relative">
+      {/* Back navigation */}
+      <button
+        onClick={() => router.back()}
+        className="mb-6 flex items-center gap-2 text-gray-600 hover:text-gray-900 transition"
+      >
+        <span className="text-xl">←</span>
+        <span>Back</span>
+      </button>
+
       <h1 className="text-3xl font-bold mb-2 text-center">
         Choose a Subscription
       </h1>
       <p className="text-gray-500 mb-10 text-center">
-        You must have an active subscription to use the platform.
+        Subscribe to unlock posting and other features.
       </p>
 
       {/* LEFT ARROW */}

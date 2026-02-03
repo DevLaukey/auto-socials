@@ -96,7 +96,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               <Users size={18} />
               Users
             </Link>
-            {/* <Link
+            <Link
               href="/admin/payments"
               onClick={onClose}
               className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm
@@ -104,7 +104,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             >
               <CreditCard size={18} />
               Post Payments
-            </Link> */}
+            </Link>
             <Link
               href="/admin/logs"
               onClick={onClose}

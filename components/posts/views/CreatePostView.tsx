@@ -1,17 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAccountsStore } from "@/src/store/accountsStore";
 import PlatformSelector from "../widgets/PlatformSelector";
 import PostMetadataModal from "../modals/PostMetadataModal";
 import PlatformAccounts from "../widgets/PlatformAccounts";
-import { createPost, initiatePostPayment } from "@/src/lib/posts";
+import { createPost } from "@/src/lib/posts";
 import api from "@/lib/api";
 import { useAuthStore } from "@/src/store/authStore";
 
 type Platform = "instagram" | "youtube" | "twitter";
 
 export default function CreatePostView() {
+  const router = useRouter();
   const { accounts, loadAccounts } = useAccountsStore();
   const { user } = useAuthStore();
 
@@ -112,20 +114,11 @@ export default function CreatePostView() {
       }
 
       // =====================================================
-      // PAYMENT FLOW: Check subscription status
+      // SUBSCRIPTION CHECK: Redirect if no active subscription
       // =====================================================
       if (!hasActiveSubscription) {
-        // User needs to pay - initiate payment
-        const paymentResponse = await initiatePostPayment(payload);
-
-        // Show message and redirect to payment
-        setMessage({
-          type: "info",
-          text: "Redirecting to payment...",
-        });
-
-        // Redirect to payment URL
-        window.location.href = paymentResponse.payment_url;
+        // Redirect to subscription page
+        router.push("/subscription");
         return;
       }
 
@@ -177,7 +170,7 @@ export default function CreatePostView() {
       {/* Subscription status notice */}
       {!hasActiveSubscription && (
         <div className="rounded-md px-4 py-3 text-sm bg-amber-50 border border-amber-200 text-amber-700">
-          You don&apos;t have an active subscription. A payment of 100 KES will be required to create each post.
+          You don&apos;t have an active subscription. Subscribe to create posts.
         </div>
       )}
 
@@ -269,7 +262,7 @@ export default function CreatePostView() {
                 ? "Processing..."
                 : hasActiveSubscription
                 ? "Execute"
-                : "Pay & Execute (100 KES)"}
+                : "Subscribe to Post"}
             </button>
           </div>
         </div>
