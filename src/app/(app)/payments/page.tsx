@@ -1,14 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { RefreshCw, CheckCircle, Clock, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getMyPayments, PostPayment } from "@/src/lib/posts";
+import { useAuthStore } from "@/src/store/authStore";
 
 type StatusFilter = "all" | "pending" | "paid" | "failed";
 
 export default function PaymentsPage() {
+  const router = useRouter();
+  const { user } = useAuthStore();
+
+  const hasActiveSubscription = user?.subscription?.is_active === true;
+
   const [payments, setPayments] = useState<PostPayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -67,6 +74,20 @@ export default function PaymentsPage() {
         </p>
       </div>
 
+      {/* Subscription notice */}
+      {!hasActiveSubscription && (
+        <div className="mb-6 rounded-md bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 flex items-center justify-between gap-4">
+          <span>
+            You don&apos;t have an active subscription. View available plans to
+            continue posting.
+          </span>
+
+          <Button size="sm" onClick={() => router.push("/subscription")}>
+            View Subscription Plans
+          </Button>
+        </div>
+      )}
+
       {/* Filters and Refresh */}
       <div className="flex flex-wrap gap-4 mb-6">
         <div className="flex gap-2">
@@ -80,9 +101,10 @@ export default function PaymentsPage() {
               >
                 {status.charAt(0).toUpperCase() + status.slice(1)}
               </Button>
-            )
+            ),
           )}
         </div>
+
         <Button
           variant="outline"
           size="sm"
@@ -128,6 +150,7 @@ export default function PaymentsPage() {
                     </p>
                   </div>
                 </div>
+
                 <div className="flex items-center gap-4">
                   {getStatusBadge(payment.status)}
                   <span className="text-xs text-gray-400 font-mono">

@@ -65,7 +65,10 @@ export default function CreatePostView() {
     if (!activePlatform) return;
 
     if (selectedAccountIds.length === 0 && selectedGroupIds.length === 0) {
-      setMessage({ type: "error", text: "Select at least one account or group." });
+      setMessage({
+        type: "error",
+        text: "Select at least one account or group.",
+      });
       return;
     }
 
@@ -133,7 +136,10 @@ export default function CreatePostView() {
       setMessage({ type: "success", text: "Post created successfully!" });
     } catch (err: any) {
       console.error(err);
-      setMessage({ type: "error", text: err.message || "Failed to create post." });
+      setMessage({
+        type: "error",
+        text: err.message || "Failed to create post.",
+      });
     } finally {
       setExecuting(false);
     }
@@ -159,8 +165,8 @@ export default function CreatePostView() {
             message.type === "success"
               ? "bg-green-50 border border-green-200 text-green-700"
               : message.type === "info"
-              ? "bg-blue-50 border border-blue-200 text-blue-700"
-              : "bg-red-50 border border-red-200 text-red-700"
+                ? "bg-blue-50 border border-blue-200 text-blue-700"
+                : "bg-red-50 border border-red-200 text-red-700"
           }`}
         >
           {message.text}
@@ -169,8 +175,18 @@ export default function CreatePostView() {
 
       {/* Subscription status notice */}
       {!hasActiveSubscription && (
-        <div className="rounded-md px-4 py-3 text-sm bg-amber-50 border border-amber-200 text-amber-700">
-          You don&apos;t have an active subscription. Subscribe to create posts.
+        <div className="rounded-md px-4 py-3 text-sm bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-between gap-4">
+          <span>
+            You don&apos;t have an active subscription. Subscribe to create
+            posts.
+          </span>
+
+          <button
+            onClick={() => router.push("/subscription")}
+            className="px-4 py-2 rounded bg-amber-600 text-white text-sm hover:bg-amber-700"
+          >
+            View Subscription Plans
+          </button>
         </div>
       )}
 
@@ -201,7 +217,9 @@ export default function CreatePostView() {
             {metadata[activePlatform].title && (
               <div>
                 <span className="text-muted-foreground">Title:</span>{" "}
-                <span className="font-medium">{metadata[activePlatform].title}</span>
+                <span className="font-medium">
+                  {metadata[activePlatform].title}
+                </span>
               </div>
             )}
             {metadata[activePlatform].description && (
@@ -220,20 +238,26 @@ export default function CreatePostView() {
               <div>
                 <span className="text-muted-foreground">Scheduled:</span>{" "}
                 <span>
-                  {new Date(metadata[activePlatform].scheduled_time).toLocaleString()}
+                  {new Date(
+                    metadata[activePlatform].scheduled_time,
+                  ).toLocaleString()}
                 </span>
               </div>
             )}
             {metadata[activePlatform].privacy_status && (
               <div>
                 <span className="text-muted-foreground">Privacy:</span>{" "}
-                <span className="capitalize">{metadata[activePlatform].privacy_status}</span>
+                <span className="capitalize">
+                  {metadata[activePlatform].privacy_status}
+                </span>
               </div>
             )}
             {metadata[activePlatform].instagram_type && (
               <div>
                 <span className="text-muted-foreground">Type:</span>{" "}
-                <span className="capitalize">{metadata[activePlatform].instagram_type}</span>
+                <span className="capitalize">
+                  {metadata[activePlatform].instagram_type}
+                </span>
               </div>
             )}
             {metadata[activePlatform].media_file && (
@@ -261,8 +285,8 @@ export default function CreatePostView() {
               {executing
                 ? "Processing..."
                 : hasActiveSubscription
-                ? "Execute"
-                : "Subscribe to Post"}
+                  ? "Execute"
+                  : "Subscribe to Post"}
             </button>
           </div>
         </div>
