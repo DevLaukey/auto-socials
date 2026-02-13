@@ -1,19 +1,75 @@
-const stats = [
-  { label: "Total Views", value: "128,430" },
-  { label: "Engagement Rate", value: "6.4%" },
-  { label: "Followers Gained", value: "+1,284" },
-  { label: "Posts Published", value: "312" },
-];
+interface OverviewStats {
+  total_posts: number;
+  total_views: number;
+  total_likes: number;
+  total_comments: number;
+}
 
-export default function AnalyticsStats() {
+interface EngagementStats {
+  average_likes: number;
+  average_comments: number;
+  engagement_rate: number;
+}
+
+interface AccountHealth {
+  score: number;
+  status: string;
+}
+
+interface Props {
+  overview: OverviewStats;
+  engagement: EngagementStats;
+  accountHealth: AccountHealth;
+}
+
+export default function AnalyticsStats({
+  overview,
+  engagement,
+  accountHealth,
+}: Props) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-      {stats.map((stat) => (
-        <div key={stat.label} className="bg-white border rounded-xl p-4">
-          <p className="text-sm text-muted-foreground">{stat.label}</p>
-          <p className="text-2xl font-semibold mt-1">{stat.value}</p>
-        </div>
-      ))}
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="bg-white p-4 rounded-lg shadow">
+        <p className="text-sm text-gray-500">Total Posts</p>
+        <p className="text-2xl font-semibold">{overview.total_posts}</p>
+      </div>
+
+      <div className="bg-white p-4 rounded-lg shadow">
+        <p className="text-sm text-gray-500">Total Views</p>
+        <p className="text-2xl font-semibold">{overview.total_views}</p>
+      </div>
+
+      <div className="bg-white p-4 rounded-lg shadow">
+        <p className="text-sm text-gray-500">Total Likes</p>
+        <p className="text-2xl font-semibold">{overview.total_likes}</p>
+      </div>
+
+      <div className="bg-white p-4 rounded-lg shadow">
+        <p className="text-sm text-gray-500">Total Comments</p>
+        <p className="text-2xl font-semibold">{overview.total_comments}</p>
+      </div>
+
+      <div className="bg-white p-4 rounded-lg shadow">
+        <p className="text-sm text-gray-500">Avg Likes</p>
+        <p className="text-2xl font-semibold">{engagement.average_likes}</p>
+      </div>
+
+      <div className="bg-white p-4 rounded-lg shadow">
+        <p className="text-sm text-gray-500">Avg Comments</p>
+        <p className="text-2xl font-semibold">{engagement.average_comments}</p>
+      </div>
+
+      <div className="bg-white p-4 rounded-lg shadow">
+        <p className="text-sm text-gray-500">Engagement Rate</p>
+        <p className="text-2xl font-semibold">{engagement.engagement_rate}%</p>
+      </div>
+
+      <div className="bg-white p-4 rounded-lg shadow">
+        <p className="text-sm text-gray-500">Account Health</p>
+        <p className="text-2xl font-semibold">
+          {accountHealth.score} ({accountHealth.status})
+        </p>
+      </div>
     </div>
   );
 }

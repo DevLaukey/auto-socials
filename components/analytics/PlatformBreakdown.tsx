@@ -9,24 +9,41 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const data = [
-  { platform: "YouTube", posts: 120 },
-  { platform: "Instagram", posts: 95 },
-  { platform: "Twitter/X", posts: 97 },
-];
+interface Props {
+  data: Record<string, number>;
+}
 
-export default function PlatformBreakdown() {
+export default function PlatformBreakdown({ data }: Props) {
+  // Convert object -> array for Recharts
+  const chartData = data
+    ? Object.entries(data).map(([platform, count]) => ({
+        platform,
+        count,
+      }))
+    : [];
+
+  if (chartData.length === 0) {
+    return (
+      <div className="bg-white border rounded-xl p-4">
+        <h2 className="font-semibold mb-4">Posts by Platform</h2>
+        <p className="text-gray-500 text-sm">
+          No platform breakdown data available.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white border rounded-xl p-4">
       <h2 className="font-semibold mb-4">Posts by Platform</h2>
 
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data}>
+          <BarChart data={chartData}>
             <XAxis dataKey="platform" />
             <YAxis />
             <Tooltip />
-            <Bar dataKey="posts" />
+            <Bar dataKey="count" />
           </BarChart>
         </ResponsiveContainer>
       </div>

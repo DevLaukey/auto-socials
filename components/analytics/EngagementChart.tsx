@@ -9,28 +9,38 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const data = [
-  { day: "Mon", engagement: 400 },
-  { day: "Tue", engagement: 800 },
-  { day: "Wed", engagement: 650 },
-  { day: "Thu", engagement: 900 },
-  { day: "Fri", engagement: 1200 },
-  { day: "Sat", engagement: 1500 },
-  { day: "Sun", engagement: 1100 },
-];
+interface PostingActivityItem {
+  date: string;
+  count: number;
+}
 
-export default function EngagementChart() {
+interface Props {
+  data: PostingActivityItem[];
+}
+
+export default function EngagementChart({ data }: Props) {
+  if (!data || data.length === 0) {
+    return (
+      <div className="bg-white border rounded-xl p-4 xl:col-span-2">
+        <h2 className="font-semibold mb-4">Posting Activity</h2>
+        <p className="text-gray-500 text-sm">
+          No posting activity data available.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white border rounded-xl p-4 xl:col-span-2">
-      <h2 className="font-semibold mb-4">Engagement Over Time</h2>
+      <h2 className="font-semibold mb-4">Posting Activity</h2>
 
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data}>
-            <XAxis dataKey="day" />
+            <XAxis dataKey="date" />
             <YAxis />
             <Tooltip />
-            <Line type="monotone" dataKey="engagement" strokeWidth={3} />
+            <Line type="monotone" dataKey="count" strokeWidth={3} />
           </LineChart>
         </ResponsiveContainer>
       </div>
