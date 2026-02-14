@@ -13,6 +13,7 @@ import {
   FileText,
   X,
   CreditCard,
+  Layers,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -105,6 +106,15 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               <CreditCard size={18} />
               Post Payments
             </Link> */}
+            <Link
+              href="/admin/tiers"
+              onClick={onClose}
+              className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm
+                ${pathname === "/admin/tiers" ? "bg-slate-800 text-white" : "hover:bg-slate-800"}`}
+            >
+              <Layers size={18} />
+              Tiers
+            </Link>
             <Link
               href="/admin/logs"
               onClick={onClose}

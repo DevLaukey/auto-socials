@@ -99,6 +99,50 @@ export async function revokeAdmin(userId: number): Promise<void> {
 }
 
 // =====================================================
+// PLAN / TIER MANAGEMENT
+// =====================================================
+
+export interface Plan {
+  id: number;
+  name: string;
+  price: number;
+  max_channels: number;
+  posts_per_day: number;
+  comments_per_day: number;
+  dms_per_day: number;
+}
+
+export type PlanInput = Omit<Plan, "id">;
+
+export async function listPlans(): Promise<Plan[]> {
+  return adminFetch("/subscriptions/plans");
+}
+
+export async function getPlan(planId: number): Promise<Plan> {
+  return adminFetch(`/subscriptions/plans/${planId}`);
+}
+
+export async function createPlan(data: PlanInput): Promise<Plan> {
+  return adminFetch("/subscriptions/plans", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updatePlan(planId: number, data: PlanInput): Promise<Plan> {
+  return adminFetch(`/subscriptions/plans/${planId}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deletePlan(planId: number): Promise<void> {
+  await adminFetch(`/subscriptions/plans/${planId}`, {
+    method: "DELETE",
+  });
+}
+
+// =====================================================
 // POST PAYMENT MANAGEMENT
 // =====================================================
 
