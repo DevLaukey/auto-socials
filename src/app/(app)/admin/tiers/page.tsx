@@ -107,15 +107,12 @@ export default function AdminTiersPage() {
     setActionLoading(true);
     try {
       if (formDialog === "create") {
-        const created = await createPlan(form);
-        setPlans((prev) => [...prev, created]);
+        await createPlan(form);
       } else if (formDialog) {
-        const updated = await updatePlan(formDialog.id, form);
-        setPlans((prev) =>
-          prev.map((p) => (p.id === formDialog.id ? updated : p))
-        );
+        await updatePlan(formDialog.id, form);
       }
       setFormDialog(null);
+      await loadPlans();
     } catch (err: any) {
       alert(err.message || "Failed to save plan");
     } finally {
@@ -128,8 +125,8 @@ export default function AdminTiersPage() {
     setActionLoading(true);
     try {
       await deletePlan(deleteDialog.id);
-      setPlans((prev) => prev.filter((p) => p.id !== deleteDialog.id));
       setDeleteDialog(null);
+      await loadPlans();
     } catch (err: any) {
       alert(err.message || "Failed to delete plan");
     } finally {
