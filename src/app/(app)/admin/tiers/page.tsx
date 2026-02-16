@@ -139,7 +139,7 @@ export default function AdminTiersPage() {
 
   const filteredPlans = plans.filter(
     (p) =>
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.name ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.id.toString().includes(searchQuery)
   );
 
