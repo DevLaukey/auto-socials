@@ -8,6 +8,7 @@ import { apiFetch } from "@/src/lib/api";
 type Plan = {
   id: number;
   name: string;
+  price: number;
   max_channels: number;
   posts_per_day: number;
   comments_per_day: number;
@@ -183,9 +184,13 @@ export default function SubscriptionPage() {
               <div className="rounded-2xl bg-gray-100 p-4 shadow-lg h-full hover:shadow-2xl transition">
                 <div className="bg-white rounded-xl p-6 h-full flex flex-col justify-between">
                   <div>
-                    <h2 className="text-xl font-semibold mb-4 text-center">
+                    <h2 className="text-xl font-semibold mb-1 text-center">
                       {plan.name}
                     </h2>
+                    <p className="text-3xl font-bold text-center mb-4">
+                      ${plan.price}
+                      <span className="text-sm font-normal text-gray-500">/mo</span>
+                    </p>
 
                     <ul className="space-y-3 text-sm text-gray-600">
                       <li>
