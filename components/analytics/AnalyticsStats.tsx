@@ -1,20 +1,8 @@
-interface OverviewStats {
-  total_posts: number;
-  total_views: number;
-  total_likes: number;
-  total_comments: number;
-}
-
-interface EngagementStats {
-  average_likes: number;
-  average_comments: number;
-  engagement_rate: number;
-}
-
-interface AccountHealth {
-  score: number;
-  status: string;
-}
+import {
+  OverviewStats,
+  EngagementStats,
+  AccountHealth,
+} from "@/src/lib/analytics";
 
 interface Props {
   overview: OverviewStats;
@@ -35,28 +23,23 @@ export default function AnalyticsStats({
       </div>
 
       <div className="bg-white p-4 rounded-lg shadow">
+        <p className="text-sm text-gray-500">Successful Posts</p>
+        <p className="text-2xl font-semibold">{overview.successful_posts}</p>
+      </div>
+
+      <div className="bg-white p-4 rounded-lg shadow">
+        <p className="text-sm text-gray-500">Success Rate</p>
+        <p className="text-2xl font-semibold">{overview.success_rate}%</p>
+      </div>
+
+      <div className="bg-white p-4 rounded-lg shadow">
         <p className="text-sm text-gray-500">Total Views</p>
-        <p className="text-2xl font-semibold">{overview.total_views}</p>
+        <p className="text-2xl font-semibold">{engagement.total_views}</p>
       </div>
 
       <div className="bg-white p-4 rounded-lg shadow">
         <p className="text-sm text-gray-500">Total Likes</p>
-        <p className="text-2xl font-semibold">{overview.total_likes}</p>
-      </div>
-
-      <div className="bg-white p-4 rounded-lg shadow">
-        <p className="text-sm text-gray-500">Total Comments</p>
-        <p className="text-2xl font-semibold">{overview.total_comments}</p>
-      </div>
-
-      <div className="bg-white p-4 rounded-lg shadow">
-        <p className="text-sm text-gray-500">Avg Likes</p>
-        <p className="text-2xl font-semibold">{engagement.average_likes}</p>
-      </div>
-
-      <div className="bg-white p-4 rounded-lg shadow">
-        <p className="text-sm text-gray-500">Avg Comments</p>
-        <p className="text-2xl font-semibold">{engagement.average_comments}</p>
+        <p className="text-2xl font-semibold">{engagement.total_likes}</p>
       </div>
 
       <div className="bg-white p-4 rounded-lg shadow">
