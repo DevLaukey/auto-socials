@@ -26,10 +26,14 @@ export default function ClipGenerator({ onClipsGenerated }: Props) {
   const [progress, setProgress] = useState<number>(0);
 
   const isMounted = useRef(true);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     return () => {
       isMounted.current = false;
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+      }
     };
   }, []);
 
@@ -61,45 +65,52 @@ export default function ClipGenerator({ onClipsGenerated }: Props) {
 
       const jobId = job.job_id;
 
-      // 2️⃣ Poll job status (max 60 attempts = 2 minutes)
-      let attempts = 0;
-      const maxAttempts = 60;
+      // 2️⃣ Start polling immediately
+      pollingRef.current = setInterval(async () => {
+        try {
+          const jobStatus = await getClipJobStatus(jobId);
 
-      while (attempts < maxAttempts) {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        attempts++;
+          if (!isMounted.current) return;
 
-        const jobStatus = await getClipJobStatus(jobId);
+          setProgress(jobStatus.progress ?? 0);
 
-        if (!isMounted.current) return;
+          if (jobStatus.status === "completed") {
+            if (pollingRef.current) {
+              clearInterval(pollingRef.current);
+            }
 
-        setProgress(jobStatus.progress);
+            setProgress(100);
 
-        if (jobStatus.status === "completed") {
-          break;
+            const clips = await getGeneratedClips(jobId);
+
+            if (onClipsGenerated) {
+              onClipsGenerated(clips);
+            }
+
+            setLoading(false);
+          }
+
+          if (jobStatus.status === "failed") {
+            if (pollingRef.current) {
+              clearInterval(pollingRef.current);
+            }
+
+            throw new Error(jobStatus.error || "Clip generation failed");
+          }
+        } catch (err: any) {
+          if (pollingRef.current) {
+            clearInterval(pollingRef.current);
+          }
+
+          if (isMounted.current) {
+            setError(err.message || "Something went wrong");
+            setLoading(false);
+          }
         }
-
-        if (jobStatus.status === "failed") {
-          throw new Error(jobStatus.error || "Clip generation failed");
-        }
-      }
-
-      if (attempts >= maxAttempts) {
-        throw new Error("Clip generation timed out.");
-      }
-
-      // 3️⃣ Fetch generated clips
-      const clips = await getGeneratedClips(jobId);
-
-      if (onClipsGenerated) {
-        onClipsGenerated(clips);
-      }
+      }, 2000);
     } catch (err: any) {
       if (isMounted.current) {
         setError(err.message || "Something went wrong");
-      }
-    } finally {
-      if (isMounted.current) {
         setLoading(false);
       }
     }
@@ -123,7 +134,7 @@ export default function ClipGenerator({ onClipsGenerated }: Props) {
           <div className="text-sm text-gray-600">Processing... {progress}%</div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
-              className="bg-black h-2 rounded-full transition-all"
+              className="bg-black h-2 rounded-full transition-all duration-500 ease-out"
               style={{ width: `${progress}%` }}
             />
           </div>

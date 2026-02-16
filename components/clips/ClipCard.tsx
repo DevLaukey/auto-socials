@@ -8,10 +8,17 @@ function formatDuration(seconds: number) {
 }
 
 export default function ClipCard({ clip }: { clip: GeneratedClip }) {
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+  // Ensure no double slashes
+  const videoUrl = clip.video_url.startsWith("http")
+    ? clip.video_url
+    : `${API_BASE}${clip.video_url}`;
+
   return (
     <div className="border rounded-xl p-4 bg-white space-y-3">
       <video
-        src={clip.video_url}
+        src={videoUrl}
         controls
         className="aspect-video rounded-md w-full bg-black"
       />
@@ -22,6 +29,7 @@ export default function ClipCard({ clip }: { clip: GeneratedClip }) {
           <p className="text-sm text-muted-foreground">
             {formatDuration(clip.duration)}
           </p>
+
           {clip.reason && (
             <p className="text-xs text-muted-foreground mt-1">{clip.reason}</p>
           )}

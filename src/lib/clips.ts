@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 // =============================
 // Types
@@ -28,7 +28,7 @@ export interface GeneratedClip {
 // Create Clip Job
 // =============================
 
-export const createClipJob = async ({
+export async function createClipJob({
   videoFile,
   sourceUrl,
   clipLength = 30,
@@ -40,7 +40,7 @@ export const createClipJob = async ({
   clipLength?: number;
   maxClips?: number;
   style?: string;
-}): Promise<CreateClipJobResponse> => {
+}): Promise<CreateClipJobResponse> {
   const formData = new FormData();
 
   if (videoFile) {
@@ -55,56 +55,51 @@ export const createClipJob = async ({
   formData.append("max_clips", maxClips.toString());
   formData.append("style", style);
 
-  const res = await fetch(`${API_URL}/api/clips/jobs`, {
-    method: "POST",
+  const res = await fetch(`${API_BASE}/api/clips/jobs`, {
     credentials: "include",
+    method: "POST",
     body: formData,
   });
 
   if (!res.ok) {
-    const error = await res.json().catch(() => null);
-    throw new Error(error?.detail || "Failed to create clip job");
+    throw new Error("Failed to create clip job");
   }
 
   return res.json();
-};
+}
 
 // =============================
 // Poll Job Status
 // =============================
 
-export const getClipJobStatus = async (
+export async function getClipJobStatus(
   jobId: number,
-): Promise<ClipJobStatusResponse> => {
-  const res = await fetch(`${API_URL}/api/clips/jobs/${jobId}`, {
-    method: "GET",
+): Promise<ClipJobStatusResponse> {
+  const res = await fetch(`${API_BASE}/api/clips/jobs/${jobId}`, {
     credentials: "include",
   });
 
   if (!res.ok) {
-    const error = await res.json().catch(() => null);
-    throw new Error(error?.detail || "Failed to fetch clip job status");
+    throw new Error("Failed to fetch clip job status");
   }
 
   return res.json();
-};
+}
 
 // =============================
 // Fetch Generated Clips
 // =============================
 
-export const getGeneratedClips = async (
+export async function getGeneratedClips(
   jobId: number,
-): Promise<GeneratedClip[]> => {
-  const res = await fetch(`${API_URL}/api/clips/jobs/${jobId}/clips`, {
-    method: "GET",
+): Promise<GeneratedClip[]> {
+  const res = await fetch(`${API_BASE}/api/clips/jobs/${jobId}/clips`, {
     credentials: "include",
   });
 
   if (!res.ok) {
-    const error = await res.json().catch(() => null);
-    throw new Error(error?.detail || "Failed to fetch generated clips");
+    throw new Error("Failed to fetch generated clips");
   }
 
   return res.json();
-};
+}
