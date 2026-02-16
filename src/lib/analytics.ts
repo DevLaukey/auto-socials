@@ -34,16 +34,12 @@ export interface AnalyticsResponse {
   account_health: AccountHealth;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { apiFetch } from "@/src/lib/api";
 
 export async function getAnalytics(): Promise<AnalyticsResponse> {
-  const res = await fetch(`${API_BASE}/analytics/overview`, {
-    credentials: "include",
-  });
-
-  if (!res.ok) {
+  const data = await apiFetch("/analytics/overview");
+  if (!data) {
     throw new Error("Failed to fetch analytics overview");
   }
-
-  return res.json();
+  return data;
 }
