@@ -11,6 +11,7 @@ import {
 } from "@/src/lib/clips";
 import ClipHistoryItem from "./ClipHistoryItem";
 import { useRouter } from "next/navigation";
+import { getFullVideoUrl } from "@/src/lib/api";
 
 interface ClipHistoryProps {
   onSendClip: (clip: GeneratedClip) => void;
@@ -78,6 +79,10 @@ export default function ClipHistory({
     sessionStorage.setItem("selectedClip", JSON.stringify(clipData));
     router.push("/posts/create?from=clips");
   };
+
+  sessionStorage.setItem("selectedClip", JSON.stringify(clipData));
+  router.push("/posts/create?from=clips");
+};
 
   if (loading && jobs.length === 0) {
     return (

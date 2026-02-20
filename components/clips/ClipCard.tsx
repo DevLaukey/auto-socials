@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { GeneratedClip } from "@/src/lib/clips";
+import { getFullVideoUrl } from "@/src/lib/api";
 
 function formatDuration(seconds: number) {
   const mins = Math.floor(seconds / 60);
@@ -21,14 +22,8 @@ export default function ClipCard({
   onSendToPosts?: () => void;
   showCheckbox?: boolean;
 }) {
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
-  // Safely handle undefined video_url
-  const videoUrl = clip.video_url
-    ? clip.video_url.startsWith("http")
-      ? clip.video_url
-      : `${API_BASE}${clip.video_url}`
-    : "";
+  // Use the centralized helper
+  const videoUrl = clip.video_url ? getFullVideoUrl(clip.video_url) : "";
 
   return (
     <div
