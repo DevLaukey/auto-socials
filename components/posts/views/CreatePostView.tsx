@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAccountsStore } from "@/src/store/accountsStore";
 import PlatformSelector from "../widgets/PlatformSelector";
 import PostMetadataModal from "../modals/PostMetadataModal";
@@ -14,6 +14,7 @@ type Platform = "instagram" | "youtube" | "twitter";
 
 export default function CreatePostView() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { accounts, loadAccounts } = useAccountsStore();
   const { user } = useAuthStore();
 
@@ -27,6 +28,47 @@ export default function CreatePostView() {
     type: "success" | "error" | "info";
     text: string;
   } | null>(null);
+
+  // Store clip data in state
+  const [pendingClip, setPendingClip] = useState<any>(null);
+  const [pendingClips, setPendingClips] = useState<any[]>([]);
+  const [currentClipIndex, setCurrentClipIndex] = useState<number>(0);
+
+  // Check for clip data from AI Clips page
+  useEffect(() => {
+    const fromClips = searchParams.get("from") === "clips";
+    const multiple = searchParams.get("multiple") === "true";
+
+    if (fromClips) {
+      if (multiple) {
+        // Handle multiple clips
+        const storedClips = sessionStorage.getItem("selectedClips");
+        if (storedClips) {
+          const clips = JSON.parse(storedClips);
+          setPendingClips(clips);
+          setCurrentClipIndex(0);
+          setMessage({
+            type: "info",
+            text: `${clips.length} clips ready to post. Select a platform to post the first clip.`,
+          });
+        }
+      } else {
+        // Handle single clip
+        const storedClip = sessionStorage.getItem("selectedClip");
+        if (storedClip) {
+          const clip = JSON.parse(storedClip);
+          setPendingClip(clip);
+          setMessage({
+            type: "info",
+            text: "Clip ready to post. Select a platform to continue.",
+          });
+        }
+      }
+
+      // Clean up URL
+      router.replace("/posts/create");
+    }
+  }, [searchParams, router]);
 
   // Check if user has an active subscription
   const hasActiveSubscription = user?.subscription?.is_active === true;
@@ -46,9 +88,20 @@ export default function CreatePostView() {
   const handleSaveMetadata = (data: any) => {
     if (!activePlatform) return;
 
-    if (!data.media_file) {
-      alert("Please upload media before saving the post.");
-      return;
+    // Handle multiple clips
+    if (pendingClips.length > 0) {
+      const currentClip = pendingClips[currentClipIndex];
+      data.media_file = currentClip.videoUrl;
+      data.clip_source = true;
+      data.clip_data = currentClip;
+      data.clip_index = currentClipIndex;
+      data.total_clips = pendingClips.length;
+    }
+    // Handle single clip
+    else if (pendingClip) {
+      data.media_file = pendingClip.videoUrl;
+      data.clip_source = true;
+      data.clip_data = pendingClip;
     }
 
     setMetadata((prev) => ({
@@ -59,6 +112,31 @@ export default function CreatePostView() {
     setSelectedAccountIds([]);
     setSelectedGroupIds([]);
     setShowModal(false);
+  };
+
+  const handlePostAnotherClip = () => {
+    // Move to next clip
+    if (currentClipIndex < pendingClips.length - 1) {
+      setCurrentClipIndex(currentClipIndex + 1);
+      setMetadata({}); // Clear metadata for next clip
+      setSelectedAccountIds([]);
+      setSelectedGroupIds([]);
+      setMessage({
+        type: "info",
+        text: `Posting clip ${currentClipIndex + 2} of ${pendingClips.length}. Select a platform to continue.`,
+      });
+    } else {
+      // All clips posted
+      setPendingClips([]);
+      setCurrentClipIndex(0);
+      setPendingClip(null);
+      sessionStorage.removeItem("selectedClips");
+      sessionStorage.removeItem("pendingClip");
+      setMessage({
+        type: "success",
+        text: "All clips have been posted successfully!",
+      });
+    }
   };
 
   const handleExecute = async () => {
@@ -89,7 +167,6 @@ export default function CreatePostView() {
           const { authenticated, auth_url } = res.data;
 
           if (!authenticated && auth_url) {
-            // Redirect to Google OAuth, return back here after auth
             const next = encodeURIComponent(window.location.href);
             window.location.href = `${auth_url}?next=${next}`;
             return;
@@ -117,23 +194,77 @@ export default function CreatePostView() {
       }
 
       // =====================================================
-      // SUBSCRIPTION CHECK: Redirect if no active subscription
+      // SUBSCRIPTION CHECK
       // =====================================================
       if (!hasActiveSubscription) {
-        // Redirect to subscription page
         router.push("/subscription");
         return;
       }
 
-      // User has subscription - create post directly
       await createPost(payload);
 
-      setMetadata({});
+      // Clear current platform metadata
+      setMetadata((prev) => {
+        const newMetadata = { ...prev };
+        delete newMetadata[activePlatform];
+        return newMetadata;
+      });
+
       setActivePlatform(null);
       setSelectedAccountIds([]);
       setSelectedGroupIds([]);
 
-      setMessage({ type: "success", text: "Post created successfully!" });
+      // Handle multiple clips progression
+      if (pendingClips.length > 0) {
+        const currentClipNum = currentClipIndex + 1;
+        setMessage({
+          type: "success",
+          text: `Clip ${currentClipNum} of ${pendingClips.length} posted successfully!`,
+        });
+
+        // Ask if user wants to post another clip
+        setTimeout(() => {
+          if (currentClipIndex < pendingClips.length - 1) {
+            if (
+              confirm(
+                `Clip ${currentClipNum} posted! Do you want to post the next clip?`,
+              )
+            ) {
+              handlePostAnotherClip();
+            } else {
+              // User chose not to continue
+              setPendingClips([]);
+              setCurrentClipIndex(0);
+              sessionStorage.removeItem("selectedClips");
+              setMessage({
+                type: "success",
+                text: `${currentClipNum} clip${currentClipNum > 1 ? "s" : ""} posted successfully!`,
+              });
+            }
+          } else {
+            // All clips posted
+            setPendingClips([]);
+            setCurrentClipIndex(0);
+            sessionStorage.removeItem("selectedClips");
+            setMessage({
+              type: "success",
+              text: "All clips have been posted successfully!",
+            });
+          }
+        }, 500);
+      } else {
+        // Single clip case
+        setMessage({
+          type: "success",
+          text: data.clip_source
+            ? "Clip posted successfully!"
+            : "Post created successfully!",
+        });
+
+        // Clear single clip data
+        setPendingClip(null);
+        sessionStorage.removeItem("pendingClip");
+      }
     } catch (err: any) {
       console.error(err);
       setMessage({
@@ -142,6 +273,17 @@ export default function CreatePostView() {
       });
     } finally {
       setExecuting(false);
+    }
+  };
+
+  const handleCancelMultiple = () => {
+    if (pendingClips.length > 0) {
+      if (confirm("Cancel posting the remaining clips?")) {
+        setPendingClips([]);
+        setCurrentClipIndex(0);
+        sessionStorage.removeItem("selectedClips");
+        setMessage(null);
+      }
     }
   };
 
@@ -154,6 +296,36 @@ export default function CreatePostView() {
           groups.
         </p>
       </div>
+
+      {/* Multiple clips progress indicator */}
+      {pendingClips.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-blue-700">
+                Posting clip {currentClipIndex + 1} of {pendingClips.length}
+              </p>
+              <p className="text-sm text-blue-600 mt-1">
+                {pendingClips.length - (currentClipIndex + 1)} clips remaining
+              </p>
+            </div>
+            <button
+              onClick={handleCancelMultiple}
+              className="px-3 py-1 text-sm bg-white border border-blue-300 rounded hover:bg-blue-50"
+            >
+              Cancel
+            </button>
+          </div>
+          <div className="w-full bg-blue-200 h-1.5 rounded-full mt-3">
+            <div
+              className="bg-blue-600 h-1.5 rounded-full transition-all"
+              style={{
+                width: `${((currentClipIndex + 1) / pendingClips.length) * 100}%`,
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       <div className="rounded-xl border bg-background p-8 min-h-[140px]">
         <PlatformSelector onChange={handlePlatformChange} />
@@ -201,6 +373,16 @@ export default function CreatePostView() {
           platform={activePlatform}
           onClose={() => setShowModal(false)}
           onSave={handleSaveMetadata}
+          initialMediaFile={
+            pendingClips.length > 0
+              ? pendingClips[currentClipIndex]?.videoUrl
+              : pendingClip?.videoUrl
+          }
+          isClipSource={!!(pendingClip || pendingClips.length > 0)}
+          clipNumber={
+            pendingClips.length > 0 ? currentClipIndex + 1 : undefined
+          }
+          totalClips={pendingClips.length > 0 ? pendingClips.length : undefined}
         />
       )}
 
@@ -210,6 +392,11 @@ export default function CreatePostView() {
             <h3 className="text-lg font-medium">Post Summary</h3>
             <span className="text-xs px-2 py-1 rounded bg-muted capitalize">
               {activePlatform}
+              {pendingClips.length > 0 && (
+                <span className="ml-2 text-blue-600">
+                  ({currentClipIndex + 1}/{pendingClips.length})
+                </span>
+              )}
             </span>
           </div>
 
@@ -263,7 +450,15 @@ export default function CreatePostView() {
             {metadata[activePlatform].media_file && (
               <div>
                 <span className="text-muted-foreground">Media:</span>{" "}
-                <span className="text-green-600">Uploaded</span>
+                <span className="text-green-600">
+                  {metadata[activePlatform].clip_source
+                    ? `Clip ${
+                        metadata[activePlatform].clip_index !== undefined
+                          ? metadata[activePlatform].clip_index + 1
+                          : ""
+                      } ready`
+                    : "Uploaded"}
+                </span>
               </div>
             )}
           </div>
@@ -276,7 +471,16 @@ export default function CreatePostView() {
             onGroupsChange={setSelectedGroupIds}
           />
 
-          <div className="flex justify-end pt-2">
+          <div className="flex justify-end gap-3 pt-2">
+            {pendingClips.length > 0 &&
+              currentClipIndex < pendingClips.length - 1 && (
+                <button
+                  onClick={handlePostAnotherClip}
+                  className="px-5 py-2 rounded border border-gray-300 text-sm hover:bg-gray-50"
+                >
+                  Skip for Now
+                </button>
+              )}
             <button
               onClick={handleExecute}
               disabled={executing}
@@ -285,7 +489,11 @@ export default function CreatePostView() {
               {executing
                 ? "Processing..."
                 : hasActiveSubscription
-                  ? "Execute"
+                  ? metadata[activePlatform]?.clipSource
+                    ? pendingClips.length > 0
+                      ? `Post Clip ${currentClipIndex + 1} of ${pendingClips.length}`
+                      : "Post Clip"
+                    : "Execute"
                   : "Subscribe to Post"}
             </button>
           </div>

@@ -9,16 +9,24 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+interface PlatformData {
+  success: number;
+  failed: number;
+  success_rate: number;
+}
+
 interface Props {
-  data: Record<string, number>;
+  data: Record<string, PlatformData>;
 }
 
 export default function PlatformBreakdown({ data }: Props) {
   // Convert object -> array for Recharts
   const chartData = data
-    ? Object.entries(data).map(([platform, count]) => ({
+    ? Object.entries(data).map(([platform, stats]) => ({
         platform,
-        count,
+        success: stats.success,
+        failed: stats.failed,
+        success_rate: stats.success_rate,
       }))
     : [];
 
@@ -42,8 +50,15 @@ export default function PlatformBreakdown({ data }: Props) {
           <BarChart data={chartData}>
             <XAxis dataKey="platform" />
             <YAxis />
-            <Tooltip />
-            <Bar dataKey="count" />
+            <Tooltip
+              formatter={(value: number, name: string) => {
+                if (name === "success_rate")
+                  return [`${value}%`, "Success Rate"];
+                return [value, name.charAt(0).toUpperCase() + name.slice(1)];
+              }}
+            />
+            <Bar dataKey="success" fill="#4CAF50" name="Success" />
+            <Bar dataKey="failed" fill="#F44336" name="Failed" />
           </BarChart>
         </ResponsiveContainer>
       </div>
