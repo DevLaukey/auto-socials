@@ -31,7 +31,6 @@ export default function ClipHistory({
     setError(null);
     try {
       const data = await getAllClipJobs();
-      // Sort by created_at descending (newest first)
       const sorted = data.sort(
         (a, b) =>
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
@@ -69,9 +68,7 @@ export default function ClipHistory({
     const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
     const clipData = {
       id: clip.clip_id,
-      videoUrl: clip.video_url.startsWith("http")
-        ? clip.video_url
-        : `${API_BASE}${clip.video_url}`,
+      videoUrl: clip.video_url, // Use as-is from the API
       duration: clip.duration,
       reason: clip.reason,
       clip_id: clip.clip_id,
