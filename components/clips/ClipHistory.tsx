@@ -67,7 +67,7 @@ export default function ClipHistory({
   const handleSendClip = (clip: GeneratedClip) => {
     const clipData = {
       id: clip.clip_id,
-      videoUrl: clip.video_url,
+      videoUrl: clip.video_url, // Use as-is from the API
       duration: clip.duration,
       reason: clip.reason,
       clip_id: clip.clip_id,
