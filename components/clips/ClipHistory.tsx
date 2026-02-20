@@ -66,18 +66,13 @@ export default function ClipHistory({
   };
 
   const handleSendClip = (clip: GeneratedClip) => {
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-    const clipData = {
-      id: clip.clip_id,
-      videoUrl: clip.video_url, // Use as-is from the API
-      duration: clip.duration,
-      reason: clip.reason,
-      clip_id: clip.clip_id,
-      video_url: clip.video_url,
-    };
-
-    sessionStorage.setItem("selectedClip", JSON.stringify(clipData));
-    router.push("/posts/create?from=clips");
+  const clipData = {
+    id: clip.clip_id,
+    videoUrl: getFullVideoUrl(clip.video_url), // Use the helper
+    duration: clip.duration,
+    reason: clip.reason,
+    clip_id: clip.clip_id,
+    video_url: clip.video_url,
   };
 
   sessionStorage.setItem("selectedClip", JSON.stringify(clipData));
