@@ -66,7 +66,7 @@ export default function ClipHistory({
   };
 
   const handleSendClip = (clip: GeneratedClip) => {
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL;  //|| "http://localhost:8000";
     const clipData = {
       id: clip.clip_id,
       videoUrl: clip.video_url.startsWith("http")
