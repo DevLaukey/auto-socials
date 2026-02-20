@@ -18,6 +18,32 @@ interface Props {
   data: PostingActivityItem[];
 }
 
+// Define our own props type for the custom tooltip
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    value: number | string;
+    name: string;
+    color?: string;
+    dataKey?: string;
+    payload?: any;
+  }>;
+  label?: string;
+}
+
+// CustomTooltip defined outside component with our own props type
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white p-3 border rounded-lg shadow-lg">
+        <p className="text-sm font-medium">{label}</p>
+        <p className="text-sm text-blue-600">Posts: {payload[0]?.value || 0}</p>
+      </div>
+    );
+  }
+  return null;
+};
+
 export default function EngagementChart({ data }: Props) {
   if (!data || data.length === 0) {
     return (
@@ -39,8 +65,13 @@ export default function EngagementChart({ data }: Props) {
           <LineChart data={data}>
             <XAxis dataKey="date" />
             <YAxis />
-            <Tooltip />
-            <Line type="monotone" dataKey="count" strokeWidth={3} />
+            <Tooltip content={<CustomTooltip />} />
+            <Line
+              type="monotone"
+              dataKey="count"
+              stroke="#3b82f6"
+              strokeWidth={3}
+            />
           </LineChart>
         </ResponsiveContainer>
       </div>

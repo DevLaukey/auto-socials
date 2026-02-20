@@ -5,7 +5,13 @@ export interface OverviewStats {
   success_rate: number;
 }
 
-export type PlatformBreakdown = Record<string, number>;
+export interface PlatformBreakdownData {
+  success: number;
+  failed: number;
+  success_rate: number;
+}
+
+export type PlatformBreakdown = Record<string, PlatformBreakdownData>;
 
 export interface PostingActivityItem {
   date: string;
@@ -28,7 +34,7 @@ export interface AccountHealth {
 
 export interface AnalyticsResponse {
   overview: OverviewStats;
-  platform_breakdown: PlatformBreakdown; // <-- object, not array
+  platform_breakdown: PlatformBreakdown;
   posting_activity: PostingActivityItem[];
   engagement: EngagementStats;
   account_health: AccountHealth;
