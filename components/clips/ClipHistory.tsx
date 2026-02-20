@@ -68,7 +68,7 @@ export default function ClipHistory({
   const handleSendClip = (clip: GeneratedClip) => {
   const clipData = {
     id: clip.clip_id,
-    videoUrl: getFullVideoUrl(clip.video_url), // Use the helper
+    videoUrl: getFullVideoUrl(clip.video_url),
     duration: clip.duration,
     reason: clip.reason,
     clip_id: clip.clip_id,
