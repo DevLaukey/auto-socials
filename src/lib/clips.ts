@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { apiFetch, apiFetchFormData, getFullVideoUrl } from "./api";
 
 // =============================
 // Types
@@ -49,27 +49,7 @@ export const getAllClipJobs = async (): Promise<ClipJob[]> => {
   console.log(`[API] Fetching all clip jobs`);
 
   try {
-    const res = await fetch(`${API_URL}/api/clips/jobs/all`, {
-      method: "GET",
-      credentials: "include",
-    });
-
-    console.log(`[API] All jobs response status:`, res.status);
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      console.error(`[API] All jobs error:`, errorText);
-      try {
-        const error = JSON.parse(errorText);
-        throw new Error(error?.detail || "Failed to fetch clip jobs");
-      } catch {
-        throw new Error(
-          `Failed to fetch clip jobs: ${res.status} ${res.statusText}`,
-        );
-      }
-    }
-
-    const data = await res.json();
+    const data = await apiFetch("/api/clips/jobs/all");
     console.log(`[API] Fetched ${data.length} clip jobs`);
     return data;
   } catch (error) {
@@ -86,17 +66,7 @@ export const getClipJob = async (jobId: number): Promise<ClipJob> => {
   console.log(`[API] Fetching clip job ${jobId}`);
 
   try {
-    const res = await fetch(`${API_URL}/api/clips/jobs/${jobId}/with-clips`, {
-      method: "GET",
-      credentials: "include",
-    });
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      throw new Error(`Failed to fetch clip job: ${errorText}`);
-    }
-
-    return await res.json();
+    return await apiFetch(`/api/clips/jobs/${jobId}/with-clips`);
   } catch (error) {
     console.error(`[API] Clip job fetch error:`, error);
     throw error;
@@ -111,15 +81,9 @@ export const deleteClipJob = async (jobId: number): Promise<void> => {
   console.log(`[API] Deleting clip job ${jobId}`);
 
   try {
-    const res = await fetch(`${API_URL}/api/clips/jobs/${jobId}`, {
+    await apiFetch(`/api/clips/jobs/${jobId}`, {
       method: "DELETE",
-      credentials: "include",
     });
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      throw new Error(`Failed to delete clip job: ${errorText}`);
-    }
   } catch (error) {
     console.error(`[API] Delete job error:`, error);
     throw error;
@@ -166,28 +130,7 @@ export const createClipJob = async ({
   });
 
   try {
-    const res = await fetch(`${API_URL}/api/clips/jobs`, {
-      method: "POST",
-      credentials: "include",
-      body: formData,
-    });
-
-    console.log("[API] Create job response status:", res.status);
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      console.error("[API] Create job error response:", errorText);
-      try {
-        const error = JSON.parse(errorText);
-        throw new Error(error?.detail || "Failed to create clip job");
-      } catch {
-        throw new Error(
-          `Failed to create clip job: ${res.status} ${res.statusText}`,
-        );
-      }
-    }
-
-    const data = await res.json();
+    const data = await apiFetchFormData("/api/clips/jobs", formData);
     console.log("[API] Create job success:", data);
     return data;
   } catch (error) {
@@ -206,29 +149,7 @@ export const getClipJobStatus = async (
   console.log(`[API] Fetching status for job ${jobId}`);
 
   try {
-    const res = await fetch(`${API_URL}/api/clips/jobs/${jobId}`, {
-      method: "GET",
-      credentials: "include",
-    });
-
-    console.log(`[API] Job ${jobId} status response:`, res.status);
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      console.error(`[API] Job ${jobId} status error:`, errorText);
-      try {
-        const error = JSON.parse(errorText);
-        throw new Error(error?.detail || "Failed to fetch clip job status");
-      } catch {
-        throw new Error(
-          `Failed to fetch job status: ${res.status} ${res.statusText}`,
-        );
-      }
-    }
-
-    const data = await res.json();
-    console.log(`[API] Job ${jobId} status data:`, data);
-    return data;
+    return await apiFetch(`/api/clips/jobs/${jobId}`);
   } catch (error) {
     console.error(`[API] Job ${jobId} status network error:`, error);
     throw error;
@@ -245,31 +166,12 @@ export const getGeneratedClips = async (
   console.log(`[API] Fetching generated clips for job ${jobId}`);
 
   try {
-    const res = await fetch(`${API_URL}/api/clips/jobs/${jobId}/clips`, {
-      method: "GET",
-      credentials: "include",
-    });
-
-    console.log(`[API] Job ${jobId} clips response status:`, res.status);
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      console.error(`[API] Job ${jobId} clips error:`, errorText);
-      try {
-        const error = JSON.parse(errorText);
-        throw new Error(error?.detail || "Failed to fetch generated clips");
-      } catch {
-        throw new Error(
-          `Failed to fetch clips: ${res.status} ${res.statusText}`,
-        );
-      }
-    }
-
-    const data = await res.json();
-    console.log(`[API] Job ${jobId} clips data:`, data);
-    return data;
+    return await apiFetch(`/api/clips/jobs/${jobId}/clips`);
   } catch (error) {
     console.error(`[API] Job ${jobId} clips network error:`, error);
     throw error;
   }
 };
+
+// Helper to get full video URL (re-export from api)
+export const getVideoUrl = getFullVideoUrl;

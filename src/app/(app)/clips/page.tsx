@@ -7,6 +7,7 @@ import GeneratedClips from "../../../../components/clips/GeneratedClips";
 import ClipSelectionBar from "../../../../components/clips/ClipSelectionBar";
 import ClipHistory from "../../../../components/clips/ClipHistory";
 import type { GeneratedClip } from "../../../lib/clips";
+import { getFullVideoUrl } from "../../../lib/api"; // Import the helper
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function ClipsPage() {
@@ -42,14 +43,14 @@ export default function ClipsPage() {
     setSelectedClips(new Set());
   };
 
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  // Remove this line:
+  // const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
   const selectedClipObjects = clips
     .filter((c) => selectedClips.has(c.clip_id))
     .map((clip) => ({
       id: clip.clip_id,
-      videoUrl: clip.video_url.startsWith("http")
-        ? clip.video_url
-        : `${API_BASE}${clip.video_url}`,
+      videoUrl: getFullVideoUrl(clip.video_url), // Use the helper
       duration: clip.duration,
       reason: clip.reason,
       clip_id: clip.clip_id,
@@ -68,9 +69,7 @@ export default function ClipsPage() {
   const handleSendSingleClip = (clip: GeneratedClip) => {
     const clipData = {
       id: clip.clip_id,
-      videoUrl: clip.video_url.startsWith("http")
-        ? clip.video_url
-        : `${API_BASE}${clip.video_url}`,
+      videoUrl: getFullVideoUrl(clip.video_url), // Use the helper
       duration: clip.duration,
       reason: clip.reason,
       clip_id: clip.clip_id,
