@@ -115,7 +115,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               <Layers size={18} />
               Tiers
             </Link>
-            <Link
+            {/* <Link
               href="/admin/logs"
               onClick={onClose}
               className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm
@@ -123,7 +123,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             >
               <FileText size={18} />
               System Logs
-            </Link>
+            </Link> */}
           </div>
         </>
       )}

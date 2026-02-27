@@ -67,35 +67,32 @@ export default function AddAccountModal({
   }
 
   /* -------------------------------------------
-   * NEW ACCOUNT (THIS WAS BROKEN)
+   * NEW ACCOUNT - FIXED: Single request with group assignment
    * ------------------------------------------- */
   async function handleAddNew() {
     if (!username || !password) return;
 
     setSubmitting(true);
     try {
-      // 1️⃣ Create account
-      const newAccount = await apiFetch("/social-accounts/", {
+      // ✅ SINGLE REQUEST - Create account AND assign to group
+      const newAccount = await apiFetch("/social-accounts/connect", {
         method: "POST",
         body: JSON.stringify({
           platform,
           account_username: username,
           password,
+          group_id: groupId, // Send group_id to backend for immediate assignment
         }),
       });
 
-      // 2️⃣ Assign to group (CRITICAL FIX)
-      await addAccountToGroup(groupId, newAccount.id);
-
-      // 3️⃣ Refresh data
+      // ✅ Refresh data
       await loadAccounts();
       await loadGroupAccounts(groupId);
 
-      // 4️⃣ Close modal (THIS FIXES THE STUCK UI)
+      // ✅ Close modal
       onClose();
     } catch (err) {
       console.error("Failed to connect account", err);
-      throw new Error("Failed to connect account");
     } finally {
       setSubmitting(false);
     }
