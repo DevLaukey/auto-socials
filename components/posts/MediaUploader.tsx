@@ -4,7 +4,7 @@ import { useState } from "react";
 import api from "@/lib/api";
 
 interface Props {
-  onUploaded: (path: string) => void;
+  onUploaded: (url: string) => void; // Changed from path to url
 }
 
 export default function MediaUploader({ onUploaded }: Props) {
@@ -22,7 +22,7 @@ export default function MediaUploader({ onUploaded }: Props) {
       });
 
       setFileName(file.name);
-      onUploaded(res.data.path);
+      onUploaded(res.data.url); // Changed from res.data.path to res.data.url
     } catch (err) {
       console.error("Upload failed", err);
       alert("Media upload failed");

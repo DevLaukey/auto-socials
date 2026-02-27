@@ -11,7 +11,6 @@ import {
 } from "@/src/lib/clips";
 import ClipHistoryItem from "./ClipHistoryItem";
 import { useRouter } from "next/navigation";
-import { getFullVideoUrl } from "@/src/lib/api";
 
 interface ClipHistoryProps {
   onSendClip: (clip: GeneratedClip) => void;
@@ -66,18 +65,18 @@ export default function ClipHistory({
   };
 
   const handleSendClip = (clip: GeneratedClip) => {
-  const clipData = {
-    id: clip.clip_id,
-    videoUrl: getFullVideoUrl(clip.video_url),
-    duration: clip.duration,
-    reason: clip.reason,
-    clip_id: clip.clip_id,
-    video_url: clip.video_url,
-  };
+    const clipData = {
+      id: clip.clip_id,
+      mediaPath: clip.video_url,
+      duration: clip.duration,
+      reason: clip.reason,
+      clip_id: clip.clip_id,
+      video_url: clip.video_url,
+    };
 
-  sessionStorage.setItem("selectedClip", JSON.stringify(clipData));
-  router.push("/posts/create?from=clips");
-};
+    sessionStorage.setItem("selectedClip", JSON.stringify(clipData));
+    router.push("/posts/create?from=clips");
+  };
 
   if (loading && jobs.length === 0) {
     return (
