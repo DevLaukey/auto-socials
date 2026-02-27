@@ -8,7 +8,7 @@ interface Props {
   platform: string;
   onClose: () => void;
   onSave: (data: any) => void;
-  initialMediaFile?: string;
+  initialMediaFile?: string; // This will be a cloud URL
   isClipSource?: boolean;
   clipNumber?: number;
   totalClips?: number;
@@ -60,7 +60,7 @@ export default function PostMetadataModal({
       title,
       description,
       hashtags,
-      media_file: mediaFile,
+      media_file: mediaFile, // This is now a cloud URL
       scheduled_time: scheduledDate ? scheduledDate.toISOString() : null,
 
       instagram_type: platform === "instagram" ? instagramType : undefined,
@@ -74,6 +74,11 @@ export default function PostMetadataModal({
 
       clip_source: isClipSource,
     });
+  };
+
+  // Helper to determine if media is a video
+  const isVideo = (url: string) => {
+    return url.match(/\.(mp4|mov|avi)$/i);
   };
 
   return (
@@ -107,6 +112,23 @@ export default function PostMetadataModal({
                   ? `Clip ${clipNumber} of ${totalClips} will be used as your media`
                   : "The selected clip will be used as your media"}
               </p>
+              {mediaFile && (
+                <div className="mt-2">
+                  {isVideo(mediaFile) ? (
+                    <video
+                      src={mediaFile}
+                      controls
+                      className="w-full rounded-lg max-h-40"
+                    />
+                  ) : (
+                    <img
+                      src={mediaFile}
+                      alt="Clip preview"
+                      className="w-full rounded-lg max-h-40 object-contain"
+                    />
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             <MediaUploader onUploaded={setMediaFile} />

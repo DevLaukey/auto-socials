@@ -1,6 +1,5 @@
 import api from "@/lib/api";
 
-// Ensure HTTPS in production to avoid mixed content errors
 function getApiBase() {
   const url = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
   if (
@@ -15,13 +14,18 @@ function getApiBase() {
 
 const API_BASE = getApiBase();
 
-// For JSON requests (your existing function)
 export async function apiFetch(path: string, options: RequestInit = {}) {
+  const headers: HeadersInit = {};
+
+  if (!(options.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+  }
+
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     credentials: "include",
     headers: {
-      "Content-Type": "application/json",
+      ...headers,
       ...(options.headers || {}),
     },
   });
@@ -54,26 +58,7 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
   return res.json();
 }
 
-// NEW: For FormData requests (file uploads) - don't set Content-Type header
-export async function apiFetchFormData(path: string, formData: FormData) {
-  const res = await fetch(`${API_BASE}${path}`, {
-    method: "POST",
-    credentials: "include",
-    body: formData,
-    // Don't set Content-Type header - browser will set it with boundary
-  });
-
-  if (!res.ok) {
-    let errorMessage = "Request failed";
-    try {
-      const text = await res.text();
-      errorMessage = text || errorMessage;
-    } catch {}
-    throw new Error(errorMessage);
-  }
-
-  return res.json();
-}
+// You can remove apiFetchFormData since apiFetch now handles FormData correctly
 
 export function getFullVideoUrl(videoUrl: string): string {
   if (!videoUrl) return "";
