@@ -17,130 +17,184 @@ type User = {
 interface AuthState {
   user: User | null;
   loading: boolean;
+  error: string | null;
 
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   checkAuth: () => Promise<void>;
   logout: () => Promise<void>;
+  clearError: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   loading: true,
+  error: null,
 
   /**
    * LOGIN
-   * Cookie-based authentication
    */
   login: async (email, password) => {
-    set({ loading: true });
+    set({ loading: true, error: null });
 
-    // Create session cookie
-    await apiFetch("/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      // Attempt to login
+      const loginResponse = await apiFetch("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
 
-    // Read authenticated user
-    const user = await apiFetch("/auth/me");
+      // Small delay to ensure cookie is properly set
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
-    // Defensive: should never be null after login, but stay safe
-    if (!user) {
-      set({ user: null, loading: false });
-      return;
+      const user = await apiFetch("/auth/me");
+
+      if (user) {
+        set({
+          user: {
+            ...user,
+            subscription: user.subscription ?? null,
+          },
+          loading: false,
+          error: null,
+        });
+        return;
+      }
+    } catch (error: any) {
+      console.error("Login error:", error);
+
+      const errorMessage = error.message || "Invalid email or password";
+
+      set({
+        user: null,
+        loading: false,
+        error: errorMessage,
+      });
     }
-
-    set({
-      user: {
-        ...user,
-        subscription: user.subscription ?? null,
-      },
-      loading: false,
-    });
   },
 
   /**
    * REGISTER
-   * ✅ Auto-login after successful registration
    */
   register: async (email, password) => {
-    set({ loading: true });
+    set({ loading: true, error: null });
 
-    // 1️⃣ Create account
-    await apiFetch("/auth/register", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      // 1️⃣ Create account
+      const registerResponse = await apiFetch("/auth/register", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
 
-    // 2️⃣ Auto-login (create session cookie)
-    await apiFetch("/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
+      // 2️⃣ Auto-login
+      const loginResponse = await apiFetch("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
 
-    // 3️⃣ Fetch authenticated user
-    const user = await apiFetch("/auth/me");
+      // Small delay to ensure cookie is properly set
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
-    if (!user) {
-      // Extremely unlikely, but safe fallback
-      set({ user: null, loading: false });
-      return;
+      // 3️⃣ Fetch authenticated user
+      const user = await apiFetch("/auth/me");
+
+      if (user) {
+        set({
+          user: {
+            ...user,
+            subscription: user.subscription ?? null,
+          },
+          loading: false,
+          error: null,
+        });
+        return;
+      }
+    } catch (error: any) {
+      console.error("Registration error:", error);
+
+      let errorMessage = error.message || "Registration failed";
+
+      if (
+        errorMessage.toLowerCase().includes("already exists") ||
+        errorMessage.toLowerCase().includes("duplicate") ||
+        errorMessage.toLowerCase().includes("already registered")
+      ) {
+        errorMessage =
+          "An account with this email already exists. Please sign in instead.";
+      }
+
+      set({
+        user: null,
+        loading: false,
+        error: errorMessage,
+      });
     }
-
-    set({
-      user: {
-        ...user,
-        subscription: user.subscription ?? null,
-      },
-      loading: false,
-    });
   },
 
   /**
    * CHECK AUTH
-   * Safe session revalidation
-   * - 401 is NORMAL → user = null
    */
   checkAuth: async () => {
-    set({ loading: true });
+    set({ loading: true, error: null });
 
-    const user = await apiFetch("/auth/me");
+    try {
+      const user = await apiFetch("/auth/me");
 
-    if (!user) {
+      if (!user) {
+        // User is not authenticated - this is normal
+        set({
+          user: null,
+          loading: false,
+          error: null, // Don't show error for unauthenticated state
+        });
+        return;
+      }
+
+      set({
+        user: {
+          ...user,
+          subscription: user.subscription ?? null,
+        },
+        loading: false,
+        error: null,
+      });
+    } catch (error: any) {
+      console.error("CheckAuth error:", error);
+
+      // Any other error (not 401) should be shown
       set({
         user: null,
         loading: false,
+        error: error.message || "Failed to verify authentication status",
       });
-      return;
     }
-
-    console.log("User role:", user.is_admin ? "Admin" : "User", user);
-
-    set({
-      user: {
-        ...user,
-        subscription: user.subscription ?? null,
-      },
-      loading: false,
-    });
   },
 
   /**
    * LOGOUT
-   * Clears cookie-based session
    */
   logout: async () => {
+    set({ loading: true, error: null });
+
     try {
       await apiFetch("/auth/logout", {
         method: "POST",
       });
-    } catch {
-      // Ignore backend logout errors
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      set({
+        user: null,
+        loading: false,
+        error: null,
+      });
     }
+  },
 
-    set({
-      user: null,
-      loading: false,
-    });
+  /**
+   * CLEAR ERROR
+   */
+  clearError: () => {
+    set({ error: null });
   },
 }));

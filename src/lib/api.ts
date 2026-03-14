@@ -15,7 +15,7 @@ function getApiBase() {
 
 const API_BASE = getApiBase();
 
-// For JSON requests (your existing function)
+// For JSON requests
 export async function apiFetch(path: string, options: RequestInit = {}) {
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
@@ -26,17 +26,26 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
     },
   });
 
-  // ✅ Allow auth endpoints to return 401 safely
+  // For auth endpoints, we want to handle 401 differently
+  const isAuthEndpoint = path.startsWith("/auth/");
+
   if (!res.ok) {
-    if (res.status === 401) {
+    // For /auth/me, return null instead of throwing (expected unauthenticated state)
+    if (path === "/auth/me" && res.status === 401) {
       return null;
     }
 
+    // For other endpoints, throw errors
     let errorMessage = "Request failed";
     try {
-      const text = await res.text();
-      errorMessage = text || errorMessage;
-    } catch {}
+      const data = await res.json();
+      errorMessage = data.detail || data.message || data.error || errorMessage;
+    } catch {
+      try {
+        const text = await res.text();
+        errorMessage = text || errorMessage;
+      } catch {}
+    }
 
     throw new Error(errorMessage);
   }
@@ -54,21 +63,25 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
   return res.json();
 }
 
-// For FormData requests (file uploads) - don't set Content-Type header
+// For FormData requests (file uploads)
 export async function apiFetchFormData(path: string, formData: FormData) {
   const res = await fetch(`${API_BASE}${path}`, {
     method: "POST",
     credentials: "include",
     body: formData,
-    // Don't set Content-Type header - browser will set it with boundary
   });
 
   if (!res.ok) {
     let errorMessage = "Request failed";
     try {
-      const text = await res.text();
-      errorMessage = text || errorMessage;
-    } catch {}
+      const data = await res.json();
+      errorMessage = data.detail || data.message || data.error || errorMessage;
+    } catch {
+      try {
+        const text = await res.text();
+        errorMessage = text || errorMessage;
+      } catch {}
+    }
     throw new Error(errorMessage);
   }
 
