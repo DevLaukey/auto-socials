@@ -7,18 +7,42 @@ import { useAccountsStore } from "@/src/store/accountsStore";
 
 export default function CreateGroupModal({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const fetchGroups = useAccountsStore((state) => state.loadGroups);
 
   async function createGroup() {
-    await apiFetch("/groups/create", {
-      method: "POST",
-      body: JSON.stringify({
-        group_name: name,
-      }),
-    });
+    if (!name.trim()) {
+      setError("Group name is required");
+      return;
+    }
 
-    await fetchGroups();
-    onClose();
+    setError(null);
+    setLoading(true);
+
+    try {
+      await apiFetch("/groups/create", {
+        method: "POST",
+        body: JSON.stringify({
+          group_name: name.trim(),
+        }),
+      });
+
+      await fetchGroups();
+      onClose();
+    } catch (err: any) {
+      // Handle error from backend
+      const errorMessage = err?.message || "Failed to create group";
+
+      // Check if it's a duplicate error
+      if (errorMessage.toLowerCase().includes("already exists")) {
+        setError(`Group "${name.trim()}" already exists`);
+      } else {
+        setError(errorMessage);
+      }
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -26,19 +50,27 @@ export default function CreateGroupModal({ onClose }: { onClose: () => void }) {
       <div className="bg-white rounded-xl p-6 w-full max-w-sm space-y-4">
         <h2 className="text-lg font-semibold">Create Account Group</h2>
 
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm">
+            {error}
+          </div>
+        )}
+
         <input
           className="border rounded-md px-3 py-2 w-full"
           placeholder="Group name"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          disabled={loading}
+          autoFocus
         />
 
         <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} disabled={loading}>
             Cancel
           </Button>
-          <Button disabled={!name} onClick={createGroup}>
-            Create
+          <Button onClick={createGroup} disabled={!name.trim() || loading}>
+            {loading ? "Creating..." : "Create"}
           </Button>
         </div>
       </div>

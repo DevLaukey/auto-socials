@@ -11,7 +11,6 @@ export interface Account {
   username: string;
   account_username?: string;
   status?: string;
-
   group_id?: number;
   group_name?: string;
 }
@@ -29,13 +28,12 @@ interface AccountsState {
   // core data
   groups: Group[];
   accounts: Account[];
-
-  // groupId -> accounts[]
   groupAccounts: Record<number, Account[]>;
 
   // loading flags
   loadingGroups: boolean;
   loadingAccounts: boolean;
+  error: string | null;
 
   /* ---------- LOADERS ---------- */
   loadGroups: () => Promise<void>;
@@ -48,6 +46,7 @@ interface AccountsState {
   renameGroup: (groupId: number, newName: string) => Promise<void>;
   deleteGroup: (groupId: number) => Promise<void>;
   disconnectAccount: (accountId: number) => Promise<void>;
+  clearError: () => void;
 }
 
 export const useAccountsStore = create<AccountsState>((set, get) => ({
@@ -58,61 +57,64 @@ export const useAccountsStore = create<AccountsState>((set, get) => ({
   groups: [],
   accounts: [],
   groupAccounts: {},
-
   loadingGroups: false,
   loadingAccounts: false,
+  error: null,
 
   /* =======================
      LOADERS
   ======================= */
 
   loadGroups: async () => {
-    set({ loadingGroups: true });
-
+    set({ loadingGroups: true, error: null });
     try {
       const data = await apiFetch("/groups/");
       set({ groups: data });
+    } catch (error: any) {
+      set({ error: error.message || "Failed to load groups" });
     } finally {
       set({ loadingGroups: false });
     }
   },
 
   loadAccounts: async () => {
-    set({ loadingAccounts: true });
-
+    set({ loadingAccounts: true, error: null });
     try {
       const data = await apiFetch("/social-accounts/");
-
-      // normalize backend response
       const normalized: Account[] = data.map((a: any) => ({
         id: a.id,
         platform: a.platform,
         username: a.account_username || a.username || "",
         status: a.status,
       }));
-
       set({ accounts: normalized });
+    } catch (error: any) {
+      set({ error: error.message || "Failed to load accounts" });
     } finally {
       set({ loadingAccounts: false });
     }
   },
 
   loadGroupAccounts: async (groupId: number) => {
-    const data = await apiFetch(`/groups/${groupId}/accounts`);
-
-    const normalized: Account[] = data.map((a: any) => ({
-      id: a.id,
-      platform: a.platform,
-      username: a.accountUsername || a.account_username || a.username || "",
-      status: "connected",
-    }));
-
-    set((state) => ({
-      groupAccounts: {
-        ...state.groupAccounts,
-        [groupId]: normalized,
-      },
-    }));
+    try {
+      const data = await apiFetch(`/groups/${groupId}/accounts`);
+      const normalized: Account[] = data.map((a: any) => ({
+        id: a.id,
+        platform: a.platform,
+        username: a.accountUsername || a.account_username || a.username || "",
+        status: "connected",
+      }));
+      set((state) => ({
+        groupAccounts: {
+          ...state.groupAccounts,
+          [groupId]: normalized,
+        },
+      }));
+    } catch (error: any) {
+      set({
+        error: error.message || `Failed to load accounts for group ${groupId}`,
+      });
+    }
   },
 
   /* =======================
@@ -120,61 +122,75 @@ export const useAccountsStore = create<AccountsState>((set, get) => ({
   ======================= */
 
   addAccountToGroup: async (groupId: number, accountId: number) => {
-    await apiFetch(`/groups/${groupId}/accounts/${accountId}`, {
-      method: "POST",
-    });
-
-    // refresh group accounts
-    await get().loadGroupAccounts(groupId);
+    try {
+      await apiFetch(`/groups/${groupId}/accounts/${accountId}`, {
+        method: "POST",
+      });
+      await get().loadGroupAccounts(groupId);
+    } catch (error: any) {
+      set({ error: error.message || "Failed to add account to group" });
+      throw error;
+    }
   },
 
   removeAccountFromGroup: async (groupId: number, accountId: number) => {
-    await apiFetch(`/groups/${groupId}/accounts/${accountId}`, {
-      method: "DELETE",
-    });
-
-    // refresh group accounts
-    await get().loadGroupAccounts(groupId);
+    try {
+      await apiFetch(`/groups/${groupId}/accounts/${accountId}`, {
+        method: "DELETE",
+      });
+      await get().loadGroupAccounts(groupId);
+    } catch (error: any) {
+      set({ error: error.message || "Failed to remove account from group" });
+      throw error;
+    }
   },
 
   renameGroup: async (groupId: number, newName: string) => {
-    await apiFetch(`/groups/${groupId}`, {
-      method: "PATCH",
-      body: JSON.stringify({ group_name: newName }),
-    });
-
-    await get().loadGroups();
+    try {
+      await apiFetch(`/groups/${groupId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ group_name: newName }),
+      });
+      await get().loadGroups();
+    } catch (error: any) {
+      set({ error: error.message || "Failed to rename group" });
+      throw error;
+    }
   },
 
   deleteGroup: async (groupId: number) => {
-    await apiFetch(`/groups/${groupId}`, {
-      method: "DELETE",
-    });
-
-    // remove cached group accounts
-    set((state) => {
-      const { [groupId]: _, ...rest } = state.groupAccounts;
-      return { groupAccounts: rest };
-    });
-
-    await get().loadGroups();
+    try {
+      await apiFetch(`/groups/${groupId}`, {
+        method: "DELETE",
+      });
+      set((state) => {
+        const { [groupId]: _, ...rest } = state.groupAccounts;
+        return { groupAccounts: rest };
+      });
+      await get().loadGroups();
+    } catch (error: any) {
+      set({ error: error.message || "Failed to delete group" });
+      throw error;
+    }
   },
 
-  /* =======================
-     DISCONNECT ACCOUNT
-  ======================= */
   disconnectAccount: async (accountId: number) => {
-    await apiFetch(`/social-accounts/${accountId}`, {
-      method: "DELETE",
-    });
-
-    // refresh global accounts list
-    await get().loadAccounts();
-
-    // refresh all loaded group accounts (safe + consistent)
-    const groupIds = Object.keys(get().groupAccounts).map(Number);
-    for (const groupId of groupIds) {
-      await get().loadGroupAccounts(groupId);
+    try {
+      await apiFetch(`/social-accounts/${accountId}`, {
+        method: "DELETE",
+      });
+      await get().loadAccounts();
+      const groupIds = Object.keys(get().groupAccounts).map(Number);
+      for (const groupId of groupIds) {
+        await get().loadGroupAccounts(groupId);
+      }
+    } catch (error: any) {
+      set({ error: error.message || "Failed to disconnect account" });
+      throw error;
     }
+  },
+
+  clearError: () => {
+    set({ error: null });
   },
 }));

@@ -3,7 +3,11 @@
 // Ensure HTTPS in production to avoid mixed content errors
 function getApiUrl() {
   const url = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
-  if (url.startsWith("http://")) {
+  if (
+    typeof window !== "undefined" &&
+    window.location.protocol === "https:" &&
+    url.startsWith("http://")
+  ) {
     return url.replace("http://", "https://");
   }
   return url;
@@ -17,6 +21,7 @@ const API_URL = getApiUrl();
 
 export interface LoginResponse {
   email: string;
+  message?: string;
 }
 
 export interface MeResponse {
@@ -32,11 +37,11 @@ export interface MeResponse {
   };
 }
 
-/* =======================
-   Helpers
-======================= */
-
-// Auth is cookie-based, no need to store tokens in localStorage
+export interface ApiError {
+  detail?: string;
+  message?: string;
+  error?: string;
+}
 
 /* =======================
    API Calls
@@ -44,7 +49,7 @@ export interface MeResponse {
 
 export async function loginRequest(
   email: string,
-  password: string
+  password: string,
 ): Promise<LoginResponse> {
   const res = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
@@ -56,7 +61,17 @@ export async function loginRequest(
   });
 
   if (!res.ok) {
-    throw new Error("Invalid credentials");
+    // Try to get detailed error message from response
+    let errorMessage = "Invalid email or password";
+    try {
+      const data: ApiError = await res.json();
+      // Handle different possible error response formats
+      errorMessage = data.detail || data.message || data.error || errorMessage;
+    } catch {
+      // If response isn't JSON, use status text
+      errorMessage = res.statusText || errorMessage;
+    }
+    throw new Error(errorMessage);
   }
 
   return res.json();
@@ -73,8 +88,14 @@ export async function registerRequest(email: string, password: string) {
   });
 
   if (!res.ok) {
-    const data = await res.json();
-    throw new Error(data.detail || "Registration failed");
+    let errorMessage = "Registration failed";
+    try {
+      const data: ApiError = await res.json();
+      errorMessage = data.detail || data.message || data.error || errorMessage;
+    } catch {
+      errorMessage = res.statusText || errorMessage;
+    }
+    throw new Error(errorMessage);
   }
 }
 
@@ -84,7 +105,14 @@ export async function meRequest(): Promise<MeResponse> {
   });
 
   if (!res.ok) {
-    throw new Error("Unauthorized");
+    let errorMessage = "Unauthorized";
+    try {
+      const data: ApiError = await res.json();
+      errorMessage = data.detail || data.message || data.error || errorMessage;
+    } catch {
+      errorMessage = res.statusText || errorMessage;
+    }
+    throw new Error(errorMessage);
   }
 
   return res.json();
@@ -102,7 +130,7 @@ export async function logoutRequest(): Promise<void> {
 }
 
 export async function forgotPasswordRequest(email: string): Promise<void> {
-  const res = await fetch(`https://backend-broken-haze-5173.fly.dev/auth/password-reset/request`, {
+  const res = await fetch(`${API_URL}/auth/password-reset/request`, {
     method: "POST",
     credentials: "include",
     headers: {
@@ -112,14 +140,20 @@ export async function forgotPasswordRequest(email: string): Promise<void> {
   });
 
   if (!res.ok) {
-    const data = await res.json();
-    throw new Error(data.detail || "Failed to send reset email");
+    let errorMessage = "Failed to send reset email";
+    try {
+      const data: ApiError = await res.json();
+      errorMessage = data.detail || data.message || data.error || errorMessage;
+    } catch {
+      errorMessage = res.statusText || errorMessage;
+    }
+    throw new Error(errorMessage);
   }
 }
 
 export async function resetPasswordRequest(
   token: string,
-  password: string
+  password: string,
 ): Promise<void> {
   const res = await fetch(`${API_URL}/auth/password-reset/confirm`, {
     method: "POST",
@@ -131,8 +165,14 @@ export async function resetPasswordRequest(
   });
 
   if (!res.ok) {
-    const data = await res.json();
-    throw new Error(data.detail || "Failed to reset password");
+    let errorMessage = "Failed to reset password";
+    try {
+      const data: ApiError = await res.json();
+      errorMessage = data.detail || data.message || data.error || errorMessage;
+    } catch {
+      errorMessage = res.statusText || errorMessage;
+    }
+    throw new Error(errorMessage);
   }
 }
 

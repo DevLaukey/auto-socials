@@ -41,14 +41,16 @@ export default function SettingsPage() {
 
   // Add proxy dialog
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [newProxy, setNewProxy] = useState<CreateProxyData>({
-    host: "",
-    port: 8080,
-    username: "",
-    password: "",
-    protocol: "http",
-  });
+  const [proxyAddress, setProxyAddress] = useState("");
+  const [proxyType, setProxyType] = useState("http");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Bulk import
+  const [showBulkImport, setShowBulkImport] = useState(false);
+  const [bulkProxies, setBulkProxies] = useState("");
 
   useEffect(() => {
     loadProxies();
@@ -68,34 +70,138 @@ export default function SettingsPage() {
   }
 
   async function handleAddProxy() {
-    if (!newProxy.host || !newProxy.port) {
+    if (!proxyAddress) {
+      setError("Proxy address is required (format: host:port)");
+      return;
+    }
+
+    if (!proxyAddress.includes(":")) {
+      setError(
+        "Proxy address must be in format: host:port (e.g., 185.155.233.94:50100)",
+      );
       return;
     }
 
     setActionLoading(true);
+    setError(null);
+    setSuccessMessage(null);
+
     try {
-      const created = await createProxy({
-        host: newProxy.host,
-        port: newProxy.port,
-        protocol: newProxy.protocol,
-        username: newProxy.username || undefined,
-        password: newProxy.password || undefined,
-      });
-      setProxies((prev) => [...prev, created]);
-      setShowAddDialog(false);
-      setNewProxy({
-        host: "",
-        port: 8080,
-        username: "",
-        password: "",
-        protocol: "http",
-      });
+      const proxyData: CreateProxyData = {
+        proxy_address: proxyAddress,
+        proxy_type: proxyType,
+      };
+
+      // Add credentials if provided
+      if (username) proxyData.username = username;
+      if (password) proxyData.password = password;
+
+      const response = await createProxy(proxyData);
+
+      setSuccessMessage(response.message || "Proxy added successfully");
+
+      // Reload the proxy list
+      await loadProxies();
+
+      // Close dialog after 1.5 seconds
+      setTimeout(() => {
+        setShowAddDialog(false);
+        resetForm();
+      }, 1500);
     } catch (err: any) {
-      alert(err.message || "Failed to add proxy");
+      setError(err.message || "Failed to add proxy");
     } finally {
       setActionLoading(false);
     }
   }
+
+  async function handleBulkImport() {
+    if (!bulkProxies.trim()) {
+      setError("Please enter proxy data");
+      return;
+    }
+
+    setActionLoading(true);
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      const lines = bulkProxies.trim().split("\n");
+      let successCount = 0;
+      let failCount = 0;
+      const errors: string[] = [];
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+
+        // Parse different formats
+        let proxyData: CreateProxyData;
+
+        // Format: LOGIN:PASS:IP:PORT
+        if (trimmed.includes(":") && trimmed.split(":").length === 4) {
+          const [login, pass, ip, port] = trimmed.split(":");
+          proxyData = {
+            proxy_address: `${ip}:${port}`,
+            proxy_type: "http", // Default to HTTP
+            username: login,
+            password: pass,
+          };
+        }
+        // Format: IP:PORT
+        else if (trimmed.includes(":") && trimmed.split(":").length === 2) {
+          const [ip, port] = trimmed.split(":");
+          proxyData = {
+            proxy_address: `${ip}:${port}`,
+            proxy_type: "http",
+          };
+        } else {
+          failCount++;
+          errors.push(`Invalid format: ${trimmed}`);
+          continue;
+        }
+
+        try {
+          await createProxy(proxyData);
+          successCount++;
+        } catch (err: any) {
+          failCount++;
+          errors.push(`${proxyData.proxy_address}: ${err.message}`);
+        }
+      }
+
+      await loadProxies();
+
+      if (failCount === 0) {
+        setSuccessMessage(`Successfully added ${successCount} proxies`);
+        setTimeout(() => {
+          setShowAddDialog(false);
+          resetForm();
+        }, 1500);
+      } else {
+        setError(
+          `Added ${successCount} proxies, ${failCount} failed. ${
+            errors.length > 0 ? errors[0] : ""
+          }`,
+        );
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to import proxies");
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  const resetForm = () => {
+    setProxyAddress("");
+    setProxyType("http");
+    setUsername("");
+    setPassword("");
+    setBulkProxies("");
+    setShowBulkImport(false);
+    setError(null);
+    setSuccessMessage(null);
+  };
 
   async function handleToggleProxy(proxy: Proxy) {
     setActionLoading(true);
@@ -105,11 +211,7 @@ export default function SettingsPage() {
       } else {
         await activateProxy(proxy.id);
       }
-      setProxies((prev) =>
-        prev.map((p) =>
-          p.id === proxy.id ? { ...p, is_active: !p.is_active } : p
-        )
-      );
+      await loadProxies();
     } catch (err: any) {
       alert(err.message || "Failed to update proxy");
     } finally {
@@ -118,18 +220,23 @@ export default function SettingsPage() {
   }
 
   async function handleRemoveProxy(proxy: Proxy) {
-    if (!confirm(`Remove proxy ${proxy.host}:${proxy.port}?`)) return;
+    if (!confirm(`Remove proxy ${proxy.proxy_address}?`)) return;
 
     setActionLoading(true);
     try {
       await removeProxy(proxy.id);
-      setProxies((prev) => prev.filter((p) => p.id !== proxy.id));
+      await loadProxies();
     } catch (err: any) {
       alert(err.message || "Failed to remove proxy");
     } finally {
       setActionLoading(false);
     }
   }
+
+  const parseProxyAddress = (address: string) => {
+    const [host, port] = address.split(":");
+    return { host, port: port || "unknown" };
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -192,66 +299,72 @@ export default function SettingsPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {proxies.map((proxy) => (
-                <div
-                  key={proxy.id}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
-                >
-                  <div className="flex items-center gap-4">
-                    <div
-                      className={`w-2 h-2 rounded-full ${
-                        proxy.is_active ? "bg-green-500" : "bg-gray-300"
-                      }`}
-                    />
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-900">
-                          {proxy.host}:{proxy.port}
-                        </span>
-                        <Badge variant="default">{proxy.protocol}</Badge>
-                        <Badge
-                          variant={proxy.is_active ? "success" : "default"}
-                        >
-                          {proxy.is_active ? "Active" : "Inactive"}
-                        </Badge>
+              {proxies.map((proxy) => {
+                const { host, port } = parseProxyAddress(proxy.proxy_address);
+                return (
+                  <div
+                    key={proxy.id}
+                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div
+                        className={`w-2 h-2 rounded-full ${
+                          proxy.is_active ? "bg-green-500" : "bg-gray-300"
+                        }`}
+                      />
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-gray-900">
+                            {host}:{port}
+                          </span>
+                          <Badge variant="default">{proxy.proxy_type}</Badge>
+                          <Badge
+                            variant={proxy.is_active ? "success" : "default"}
+                          >
+                            {proxy.is_active ? "Active" : "Inactive"}
+                          </Badge>
+                        </div>
+                        {proxy.username && (
+                          <p className="text-sm text-gray-500 mt-0.5">
+                            Auth: {proxy.username}
+                          </p>
+                        )}
+                        {proxy.created_at && (
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            Added{" "}
+                            {new Date(proxy.created_at).toLocaleDateString()}
+                          </p>
+                        )}
                       </div>
-                      {proxy.username && (
-                        <p className="text-sm text-gray-500 mt-0.5">
-                          Auth: {proxy.username}
-                        </p>
-                      )}
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        Added {new Date(proxy.created_at).toLocaleDateString()}
-                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleToggleProxy(proxy)}
+                        disabled={actionLoading}
+                        title={proxy.is_active ? "Deactivate" : "Activate"}
+                      >
+                        {proxy.is_active ? (
+                          <PowerOff size={14} />
+                        ) : (
+                          <Power size={14} />
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleRemoveProxy(proxy)}
+                        disabled={actionLoading}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 size={14} />
+                      </Button>
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleToggleProxy(proxy)}
-                      disabled={actionLoading}
-                      title={proxy.is_active ? "Deactivate" : "Activate"}
-                    >
-                      {proxy.is_active ? (
-                        <PowerOff size={14} />
-                      ) : (
-                        <Power size={14} />
-                      )}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleRemoveProxy(proxy)}
-                      disabled={actionLoading}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 size={14} />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -259,112 +372,172 @@ export default function SettingsPage() {
 
       {/* Add Proxy Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogClose onClose={() => setShowAddDialog(false)} />
+        <DialogClose
+          onClose={() => {
+            setShowAddDialog(false);
+            resetForm();
+          }}
+        />
         <DialogHeader>
           <DialogTitle>Add Proxy</DialogTitle>
           <DialogDescription>
             Configure a new proxy server for your requests
           </DialogDescription>
         </DialogHeader>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Protocol
-              </label>
-              <select
-                value={newProxy.protocol}
-                onChange={(e) =>
-                  setNewProxy({
-                    ...newProxy,
-                    protocol: e.target.value as "http" | "https" | "socks5",
-                  })
-                }
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            {error && (
+              <div className="rounded-md bg-red-50 border border-red-200 text-red-700 px-3 py-2 text-sm">
+                {error}
+              </div>
+            )}
+
+            {successMessage && (
+              <div className="rounded-md bg-green-50 border border-green-200 text-green-700 px-3 py-2 text-sm">
+                {successMessage}
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <Button
+                variant={!showBulkImport ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  setShowBulkImport(false);
+                  setError(null);
+                }}
               >
-                <option value="http">HTTP</option>
-                <option value="https">HTTPS</option>
-                <option value="socks5">SOCKS5</option>
-              </select>
+                Single Proxy
+              </Button>
+              <Button
+                variant={showBulkImport ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  setShowBulkImport(true);
+                  setError(null);
+                }}
+              >
+                Bulk Import
+              </Button>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
-              <div className="col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Host
-                </label>
-                <Input
-                  type="text"
-                  placeholder="proxy.example.com"
-                  value={newProxy.host}
-                  onChange={(e) =>
-                    setNewProxy({ ...newProxy, host: e.target.value })
-                  }
-                />
-              </div>
+            {!showBulkImport ? (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Proxy Type
+                  </label>
+                  <select
+                    value={proxyType}
+                    onChange={(e) => setProxyType(e.target.value)}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    disabled={actionLoading}
+                  >
+                    <option value="http">HTTP</option>
+                    <option value="https">HTTPS</option>
+                    <option value="socks5">SOCKS5</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Proxy Address
+                  </label>
+                  <Input
+                    type="text"
+                    placeholder="host:port (e.g., 185.155.233.94:50100)"
+                    value={proxyAddress}
+                    onChange={(e) => setProxyAddress(e.target.value)}
+                    disabled={actionLoading}
+                    className="w-full"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Username (optional)
+                  </label>
+                  <Input
+                    type="text"
+                    placeholder="username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    disabled={actionLoading}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Password (optional)
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={actionLoading}
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Port
+                  Bulk Import Proxies
                 </label>
-                <Input
-                  type="number"
-                  placeholder="8080"
-                  value={newProxy.port}
-                  onChange={(e) =>
-                    setNewProxy({ ...newProxy, port: parseInt(e.target.value) || 0 })
-                  }
+                <textarea
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  rows={8}
+                  placeholder="Supported formats:&#10;&#10;1. LOGIN:PASS:IP:PORT (authenticated)&#10;VSpjrP0X:QwBIjNd1s6:185.155.233.94:50100&#10;&#10;2. IP:PORT (unauthenticated)&#10;185.155.233.94:50100"
+                  value={bulkProxies}
+                  onChange={(e) => setBulkProxies(e.target.value)}
+                  disabled={actionLoading}
                 />
+                <p className="text-xs text-gray-500 mt-2">
+                  <strong>Formats:</strong>
+                  <br />
+                  • Authenticated: username:password:host:port
+                  <br />
+                  • Unauthenticated: host:port
+                  <br />
+                  One proxy per line
+                </p>
               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Username (optional)
-              </label>
-              <Input
-                type="text"
-                placeholder="username"
-                value={newProxy.username}
-                onChange={(e) =>
-                  setNewProxy({ ...newProxy, username: e.target.value })
-                }
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Password (optional)
-              </label>
-              <div className="relative">
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="password"
-                  value={newProxy.password}
-                  onChange={(e) =>
-                    setNewProxy({ ...newProxy, password: e.target.value })
-                  }
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
+            )}
           </div>
         </DialogContent>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setShowAddDialog(false);
+              resetForm();
+            }}
+            disabled={actionLoading}
+          >
             Cancel
           </Button>
           <Button
-            onClick={handleAddProxy}
-            disabled={actionLoading || !newProxy.host || !newProxy.port}
+            onClick={showBulkImport ? handleBulkImport : handleAddProxy}
+            disabled={
+              actionLoading ||
+              (showBulkImport ? !bulkProxies.trim() : !proxyAddress)
+            }
           >
-            {actionLoading ? "Adding..." : "Add Proxy"}
+            {actionLoading
+              ? "Adding..."
+              : showBulkImport
+                ? "Import All"
+                : "Add Proxy"}
           </Button>
         </DialogFooter>
       </Dialog>
