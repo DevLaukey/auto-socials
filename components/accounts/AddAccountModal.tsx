@@ -77,16 +77,7 @@ export default function AddAccountModal({
       }, 1500);
     } catch (err: any) {
       console.error("Failed to add account to group:", err);
-
-      // Check for duplicate error
-      if (
-        err?.message?.toLowerCase().includes("already in this group") ||
-        err?.message?.toLowerCase().includes("already exists")
-      ) {
-        setError("This account is already in the group");
-      } else {
-        setError(err?.message || "Failed to add account to group");
-      }
+      setError(err?.message || "Failed to add account to group");
       setSubmitting(false);
     }
   }
@@ -138,16 +129,7 @@ export default function AddAccountModal({
       }, 1500);
     } catch (err: any) {
       console.error("Failed to connect account:", err);
-
-      // Check for duplicate error from backend
-      if (
-        err?.message?.toLowerCase().includes("already exists") ||
-        err?.message?.toLowerCase().includes("duplicate")
-      ) {
-        setError(`Account "${username}" already exists`);
-      } else {
-        setError(err?.message || "Failed to connect account");
-      }
+      setError(err?.message || "Failed to connect account");
       setSubmitting(false);
     }
   }

@@ -31,15 +31,7 @@ export default function CreateGroupModal({ onClose }: { onClose: () => void }) {
       await fetchGroups();
       onClose();
     } catch (err: any) {
-      // Handle error from backend
-      const errorMessage = err?.message || "Failed to create group";
-
-      // Check if it's a duplicate error
-      if (errorMessage.toLowerCase().includes("already exists")) {
-        setError(`Group "${name.trim()}" already exists`);
-      } else {
-        setError(errorMessage);
-      }
+      setError(err?.message || "Failed to create group");
     } finally {
       setLoading(false);
     }

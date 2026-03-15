@@ -1,18 +1,21 @@
+import { useState } from "react";
 import { useAccountsStore, type Account } from "@/src/store/accountsStore";
 import { Button } from "@/components/ui/button";
 
 export default function AccountCard({ account }: { account: Account }) {
   const disconnectAccount = useAccountsStore((s) => s.disconnectAccount);
   const loadAccounts = useAccountsStore((s) => s.loadAccounts);
+  const [error, setError] = useState<string | null>(null);
 
   const handleDisconnect = async () => {
     if (!confirm(`Disconnect ${account.platform} account "${account.username}"?`))
       return;
+    setError(null);
     try {
       await disconnectAccount(account.id);
       await loadAccounts();
-    } catch (err) {
-      console.error("Failed to disconnect account", err);
+    } catch (err: any) {
+      setError(err?.message || "Failed to disconnect account");
     }
   };
 
@@ -25,6 +28,10 @@ export default function AccountCard({ account }: { account: Account }) {
         <p className="text-xs text-muted-foreground">
           Status: {account.status}
         </p>
+      )}
+
+      {error && (
+        <p className="text-xs text-red-600">{error}</p>
       )}
 
       <div className="flex gap-2">

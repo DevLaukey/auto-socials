@@ -24,23 +24,32 @@ export default function GroupAccounts({
   const [newName, setNewName] = useState(group.name);
   const [deleting, setDeleting] = useState(false);
   const [removingId, setRemovingId] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleRename() {
     if (!newName.trim() || newName === group.name) {
       setIsRenaming(false);
       return;
     }
-    await renameGroup(group.id, newName.trim());
-    setIsRenaming(false);
+    setError(null);
+    try {
+      await renameGroup(group.id, newName.trim());
+      setIsRenaming(false);
+    } catch (err: any) {
+      setError(err?.message || "Failed to rename group");
+    }
   }
 
   async function handleDelete() {
     if (!confirm(`Delete group "${group.name}"? Accounts will not be deleted.`))
       return;
     setDeleting(true);
+    setError(null);
     try {
       await deleteGroup(group.id);
       onGroupDeleted();
+    } catch (err: any) {
+      setError(err?.message || "Failed to delete group");
     } finally {
       setDeleting(false);
     }
@@ -48,8 +57,11 @@ export default function GroupAccounts({
 
   async function handleRemoveAccount(accountId: number) {
     setRemovingId(accountId);
+    setError(null);
     try {
       await removeAccountFromGroup(group.id, accountId);
+    } catch (err: any) {
+      setError(err?.message || "Failed to remove account from group");
     } finally {
       setRemovingId(null);
     }
@@ -57,6 +69,14 @@ export default function GroupAccounts({
 
   return (
     <div className="md:col-span-3 bg-white border rounded-xl p-4 space-y-4">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm flex items-start gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+          </svg>
+          <span>{error}</span>
+        </div>
+      )}
       <div className="flex justify-between items-center gap-2">
         {isRenaming ? (
           <div className="flex items-center gap-2 flex-1">
