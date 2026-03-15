@@ -17,11 +17,13 @@ export default function AddAccountView({ onClose }: AddAccountViewProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setSuccess(null);
 
     try {
       await apiFetch("/social-accounts/connect", {
@@ -33,12 +35,12 @@ export default function AddAccountView({ onClose }: AddAccountViewProps) {
         }),
       });
 
-      // Refresh accounts store so list updates immediately
       await loadAccounts();
+      setSuccess(`${platform} account "${accountUsername}" connected successfully!`);
 
-      if (typeof onClose === "function") {
-        onClose();
-      }
+      setTimeout(() => {
+        if (typeof onClose === "function") onClose();
+      }, 1500);
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : "Failed to connect account",
@@ -53,12 +55,22 @@ export default function AddAccountView({ onClose }: AddAccountViewProps) {
       <h2 className="text-lg font-semibold mb-4">Connect Account</h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {success && (
+          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md text-sm flex items-start gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            <span>{success}</span>
+          </div>
+        )}
+
         <div>
           <label className="block text-sm font-medium mb-1">Platform</label>
           <select
             value={platform}
-            onChange={(e) => setPlatform(e.target.value)}
+            onChange={(e) => { setPlatform(e.target.value); setError(null); }}
             className="w-full rounded border px-3 py-2"
+            disabled={loading || !!success}
           >
             <option value="YouTube">YouTube</option>
             <option value="Instagram">Instagram</option>
@@ -73,9 +85,10 @@ export default function AddAccountView({ onClose }: AddAccountViewProps) {
           <input
             type="text"
             value={accountUsername}
-            onChange={(e) => setAccountUsername(e.target.value)}
+            onChange={(e) => { setAccountUsername(e.target.value); setError(null); }}
             className="w-full rounded border px-3 py-2"
             required
+            disabled={loading || !!success}
           />
         </div>
 
@@ -85,9 +98,10 @@ export default function AddAccountView({ onClose }: AddAccountViewProps) {
             <input
               type={showPassword ? "text" : "password"}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => { setPassword(e.target.value); setError(null); }}
               className="w-full rounded border px-3 py-2 pr-10"
               required
+              disabled={loading || !!success}
             />
             <button
               type="button"
@@ -118,10 +132,10 @@ export default function AddAccountView({ onClose }: AddAccountViewProps) {
           </button>
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !!success}
             className="rounded bg-black px-4 py-2 text-white disabled:opacity-50"
           >
-            {loading ? "Connecting..." : "Connect"}
+            {loading ? "Connecting..." : success ? "Connected!" : "Connect"}
           </button>
         </div>
       </form>
