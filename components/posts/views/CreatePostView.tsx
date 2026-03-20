@@ -6,7 +6,9 @@ import { useAccountsStore } from "@/src/store/accountsStore";
 import PlatformSelector from "../widgets/PlatformSelector";
 import PostMetadataModal from "../modals/PostMetadataModal";
 import PlatformAccounts from "../widgets/PlatformAccounts";
-import { createPost } from "@/src/lib/posts";
+import AIEngagementSettings from "../widgets/AIEngagementSettings";
+import TwitterThreadBuilder from "../widgets/TwitterThreadBuilder";
+import { createPost, createPostWithEngagement } from "@/src/lib/posts";
 import api from "@/lib/api";
 import { useAuthStore } from "@/src/store/authStore";
 
@@ -15,7 +17,7 @@ type Platform = "instagram" | "youtube" | "twitter";
 export default function CreatePostView() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { accounts, loadAccounts } = useAccountsStore();
+  const { accounts, loadAccounts, checkTwitterAuth } = useAccountsStore();
   const { user } = useAuthStore();
 
   const [activePlatform, setActivePlatform] = useState<Platform | null>(null);
@@ -28,6 +30,23 @@ export default function CreatePostView() {
     type: "success" | "error" | "info";
     text: string;
   } | null>(null);
+
+  // AI Engagement settings
+  const [engagementSettings, setEngagementSettings] = useState({
+    ai_comments_enabled: false,
+    ai_comments_count: 3,
+    ai_comments_style: "casual" as const,
+    ai_comments_delay_minutes: 10,
+    ai_comments_spread: true,
+    ai_dms_enabled: false,
+    ai_dms_target_users: [] as string[],
+    ai_dms_message_style: "friendly" as const,
+    ai_dms_delay_minutes: 5,
+  });
+
+  // Twitter/X thread builder
+  const [isThread, setIsThread] = useState(false);
+  const [threadTweets, setThreadTweets] = useState<string[]>([""]);
 
   // Store clip data in state
   const [pendingClip, setPendingClip] = useState<any>(null);
@@ -79,10 +98,25 @@ export default function CreatePostView() {
     }
   }, [accounts.length, loadAccounts]);
 
+  // Check Twitter auth when platform changes to twitter
+  useEffect(() => {
+    if (activePlatform === "twitter" && selectedAccountIds.length > 0) {
+      selectedAccountIds.forEach((accountId) => {
+        checkTwitterAuth(accountId);
+      });
+    }
+  }, [activePlatform, selectedAccountIds, checkTwitterAuth]);
+
   const handlePlatformChange = (platform: Platform) => {
     setActivePlatform(platform);
     setShowModal(true);
     setMessage(null);
+
+    // Reset Twitter-specific state
+    if (platform !== "twitter") {
+      setIsThread(false);
+      setThreadTweets([""]);
+    }
   };
 
   const handleSaveMetadata = (data: any) => {
@@ -151,9 +185,21 @@ export default function CreatePostView() {
     }
 
     const data = metadata[activePlatform];
-    if (!data?.media_file) {
+    if (!data?.media_file && activePlatform !== "twitter") {
       setMessage({ type: "error", text: "No media uploaded." });
       return;
+    }
+
+    // Validate Twitter thread
+    if (activePlatform === "twitter" && isThread) {
+      const validTweets = threadTweets.filter((t) => t.trim().length > 0);
+      if (validTweets.length < 2) {
+        setMessage({
+          type: "error",
+          text: "A thread must contain at least 2 tweets.",
+        });
+        return;
+      }
     }
 
     setMessage(null);
@@ -161,6 +207,7 @@ export default function CreatePostView() {
     try {
       setExecuting(true);
 
+      // Check YouTube authentication
       if (activePlatform === "youtube") {
         for (const accountId of selectedAccountIds) {
           const res = await api.get(`/auth/youtube/status/${accountId}`);
@@ -174,23 +221,50 @@ export default function CreatePostView() {
         }
       }
 
+      // Check Twitter authentication
+      if (activePlatform === "twitter") {
+        for (const accountId of selectedAccountIds) {
+          const isAuthenticated = await checkTwitterAuth(accountId);
+          if (!isAuthenticated) {
+            setMessage({
+              type: "error",
+              text: "Twitter account not authenticated. Please connect Twitter first.",
+            });
+            return;
+          }
+        }
+      }
+
       // =====================================================
       // CREATE POST PAYLOAD
       // =====================================================
       const payload: any = {
         account_ids: selectedAccountIds,
         group_ids: selectedGroupIds,
-        media_file: data.media_file,
-        title: data.title || "",
-        description: data.description || "",
-        hashtags: data.hashtags || "",
-        scheduled_time: data.scheduled_time,
-        privacy_status: data.privacy_status || "public",
+        media_file: data?.media_file || "",
+        title: data?.title || "",
+        description: data?.description || "",
+        hashtags: data?.hashtags || "",
+        scheduled_time: data?.scheduled_time,
+        privacy_status: data?.privacy_status || "public",
+
+        // AI Engagement settings
+        ...engagementSettings,
+
+        // Twitter/X specific
+        ...(activePlatform === "twitter" && {
+          is_thread: isThread,
+          thread_tweets: isThread
+            ? threadTweets.filter((t) => t.trim())
+            : undefined,
+          reply_to_tweet_id: data?.reply_to_tweet_id,
+          quote_tweet_id: data?.quote_tweet_id,
+        }),
       };
 
       if (activePlatform === "instagram") {
         payload.post_type =
-          data.instagram_type === "post" ? "feed" : data.instagram_type;
+          data?.instagram_type === "post" ? "feed" : data?.instagram_type;
       }
 
       // =====================================================
@@ -201,7 +275,16 @@ export default function CreatePostView() {
         return;
       }
 
-      await createPost(payload);
+      // Use createPostWithEngagement if any AI engagement is enabled
+      let result;
+      if (
+        engagementSettings.ai_comments_enabled ||
+        engagementSettings.ai_dms_enabled
+      ) {
+        result = await createPostWithEngagement(payload);
+      } else {
+        result = await createPost(payload);
+      }
 
       // Clear current platform metadata
       setMetadata((prev) => {
@@ -214,13 +297,34 @@ export default function CreatePostView() {
       setSelectedAccountIds([]);
       setSelectedGroupIds([]);
 
+      // Reset engagement settings
+      setEngagementSettings({
+        ai_comments_enabled: false,
+        ai_comments_count: 3,
+        ai_comments_style: "casual",
+        ai_comments_delay_minutes: 10,
+        ai_comments_spread: true,
+        ai_dms_enabled: false,
+        ai_dms_target_users: [],
+        ai_dms_message_style: "friendly",
+        ai_dms_delay_minutes: 5,
+      });
+
       // Handle multiple clips progression
       if (pendingClips.length > 0) {
         const currentClipNum = currentClipIndex + 1;
-        setMessage({
-          type: "success",
-          text: `Clip ${currentClipNum} of ${pendingClips.length} posted successfully!`,
-        });
+
+        // Build success message with engagement info
+        let successText = `Clip ${currentClipNum} of ${pendingClips.length} posted successfully!`;
+        if (result?.engagement_jobs) {
+          const commentCount = result.engagement_jobs.comments?.length || 0;
+          const dmCount = result.engagement_jobs.dms?.length || 0;
+          if (commentCount > 0 || dmCount > 0) {
+            successText += ` (${commentCount} comments, ${dmCount} DMs scheduled)`;
+          }
+        }
+
+        setMessage({ type: "success", text: successText });
 
         // Ask if user wants to post another clip
         setTimeout(() => {
@@ -254,12 +358,19 @@ export default function CreatePostView() {
         }, 500);
       } else {
         // Single clip case
-        setMessage({
-          type: "success",
-          text: data.clip_source
-            ? "Clip posted successfully!"
-            : "Post created successfully!",
-        });
+        let successText = data?.clip_source
+          ? "Clip posted successfully!"
+          : "Post created successfully!";
+
+        if (result?.engagement_jobs) {
+          const commentCount = result.engagement_jobs.comments?.length || 0;
+          const dmCount = result.engagement_jobs.dms?.length || 0;
+          if (commentCount > 0 || dmCount > 0) {
+            successText += ` (${commentCount} comments, ${dmCount} DMs scheduled)`;
+          }
+        }
+
+        setMessage({ type: "success", text: successText });
 
         // Clear single clip data
         setPendingClip(null);
@@ -285,6 +396,21 @@ export default function CreatePostView() {
         setMessage(null);
       }
     }
+  };
+
+  const handleEngagementChange = (settings: any) => {
+    setEngagementSettings((prev) => ({ ...prev, ...settings }));
+  };
+
+  const handleTargetUsersChange = (users: string) => {
+    const userList = users
+      .split(",")
+      .map((u) => u.trim())
+      .filter(Boolean);
+    setEngagementSettings((prev) => ({
+      ...prev,
+      ai_dms_target_users: userList,
+    }));
   };
 
   return (
@@ -383,6 +509,14 @@ export default function CreatePostView() {
             pendingClips.length > 0 ? currentClipIndex + 1 : undefined
           }
           totalClips={pendingClips.length > 0 ? pendingClips.length : undefined}
+          onThreadChange={
+            activePlatform === "twitter"
+              ? (thread) => {
+                  setIsThread(thread.enabled);
+                  setThreadTweets(thread.tweets);
+                }
+              : undefined
+          }
         />
       )}
 
@@ -461,8 +595,19 @@ export default function CreatePostView() {
                 </span>
               </div>
             )}
+
+            {/* Twitter/X thread indicator */}
+            {activePlatform === "twitter" && isThread && (
+              <div className="col-span-2">
+                <span className="text-muted-foreground">Thread:</span>{" "}
+                <span className="text-blue-600">
+                  {threadTweets.filter((t) => t.trim()).length} tweets
+                </span>
+              </div>
+            )}
           </div>
 
+          {/* Platform Accounts Selection */}
           <PlatformAccounts
             platform={activePlatform}
             selectedAccountIds={selectedAccountIds}
@@ -471,6 +616,15 @@ export default function CreatePostView() {
             onGroupsChange={setSelectedGroupIds}
           />
 
+          {/* AI Engagement Settings */}
+          <AIEngagementSettings
+            settings={engagementSettings}
+            onSettingsChange={handleEngagementChange}
+            onTargetUsersChange={handleTargetUsersChange}
+            disabled={executing}
+          />
+
+          {/* Execute Button */}
           <div className="flex justify-end gap-3 pt-2">
             {pendingClips.length > 0 &&
               currentClipIndex < pendingClips.length - 1 && (
@@ -493,7 +647,10 @@ export default function CreatePostView() {
                     ? pendingClips.length > 0
                       ? `Post Clip ${currentClipIndex + 1} of ${pendingClips.length}`
                       : "Post Clip"
-                    : "Execute"
+                    : engagementSettings.ai_comments_enabled ||
+                        engagementSettings.ai_dms_enabled
+                      ? "Create with AI Engagement"
+                      : "Execute"
                   : "Subscribe to Post"}
             </button>
           </div>

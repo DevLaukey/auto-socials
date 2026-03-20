@@ -28,6 +28,24 @@ export interface Post {
   accounts?: PostAccount[];
   post_type?: string;
   privacy_status?: string;
+  
+  // Twitter/X specific fields
+  tweet_id?: string;
+  media_ids?: string[];
+  reply_to_tweet_id?: string;
+  is_thread?: boolean;
+  thread_tweets?: string[];
+  
+  // AI engagement fields
+  ai_comment_enabled?: boolean;
+  ai_comment_count?: number;
+  ai_comment_style?: string;
+  ai_comments_delay_minutes?: number;
+  ai_dms_enabled?: boolean;
+  
+  // Engagement job counts
+  comment_jobs_count?: number;
+  dm_jobs_count?: number;
 }
 
 export interface PostStatus {
@@ -39,6 +57,7 @@ export interface PostStatus {
 }
 
 export interface CreatePostData {
+  // Core fields
   account_ids: number[];
   group_ids?: number[];
   media_file: string;
@@ -48,92 +67,76 @@ export interface CreatePostData {
   scheduled_time?: string | null;
   privacy_status?: string;
   post_type?: string;
+  
+  // Twitter/X specific fields
+  is_thread?: boolean;
+  thread_tweets?: string[];
+  quote_tweet_id?: string;
+  reply_to_tweet_id?: string;
+  
+  // AI Comments settings
+  ai_comments_enabled?: boolean;
+  ai_comments_count?: number;
+  ai_comments_style?: "casual" | "funny" | "thoughtful" | "question" | "supportive";
+  ai_comments_delay_minutes?: number;
+  ai_comments_spread?: boolean;
+  
+  // AI DMs settings
+  ai_dms_enabled?: boolean;
+  ai_dms_target_users?: string[];
+  ai_dms_message_style?: "friendly" | "professional" | "casual" | "enthusiastic" | "helpful";
+  ai_dms_delay_minutes?: number;
+  
+  // Clip source indicator
+  clip_source?: boolean;
+  clip_data?: any;
 }
 
-async function postsFetch(path: string, options: RequestInit = {}) {
-  const res = await fetch(`${API_URL}${path}`, {
-    ...options,
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
-  });
-
-  if (!res.ok) {
-    let errorMessage = "Request failed";
-    try {
-      const data = await res.json();
-      errorMessage = data.detail || errorMessage;
-    } catch {}
-    throw new Error(errorMessage);
-  }
-
-  if (res.status === 204) {
-    return null;
-  }
-
-  return res.json();
+export interface CreatePostResponse {
+  id: number;
+  status: string;
+  scheduled_time?: string | null;
+  platform_counts?: Record<string, number>;
 }
 
-// List all posts
-export async function listPosts(): Promise<Post[]> {
-  return postsFetch("/posts");
+export interface CreatePostWithEngagementResponse {
+  post_id: number;
+  status: string;
+  scheduled_time?: string | null;
+  engagement_jobs: {
+    comments: Array<{
+      job_id: number;
+      account_id: number;
+      comment: string;
+      scheduled_time: string;
+    }>;
+    dms: Array<{
+      job_id: number;
+      account_id: number;
+      recipient: string;
+      message: string;
+      scheduled_time: string;
+    }>;
+  };
 }
 
-// Create a new post
-export async function createPost(data: CreatePostData): Promise<Post> {
-  return postsFetch("/posts/", {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
+export interface CommentJob {
+  job_id: number;
+  account_id: number;
+  target_url: string;
+  comment: string;
+  scheduled_time: string | null;
+  status: "pending" | "processing" | "completed" | "failed" | "cancelled";
 }
 
-// Get a single post by ID
-export async function getPost(postId: number): Promise<Post> {
-  return postsFetch(`/posts/post/${postId}`);
+export interface DMJob {
+  job_id: number;
+  account_id: number;
+  recipient: string;
+  message: string;
+  scheduled_time: string | null;
+  status: "pending" | "processing" | "completed" | "failed" | "cancelled";
 }
-
-// Get post status
-export async function getPostStatus(postId: number): Promise<PostStatus> {
-  return postsFetch(`/posts/${postId}/status`);
-}
-
-// Execute a post immediately
-export async function executePost(postId: number): Promise<void> {
-  await postsFetch(`/posts/${postId}/execute`, {
-    method: "POST",
-  });
-}
-
-// Cancel a scheduled post
-export async function cancelPost(postId: number): Promise<void> {
-  await postsFetch(`/posts/${postId}/cancel`, {
-    method: "PATCH",
-  });
-}
-
-// Reschedule a post
-export async function reschedulePost(
-  postId: number,
-  scheduledTime: string
-): Promise<void> {
-  await postsFetch(`/posts/${postId}/reschedule`, {
-    method: "PATCH",
-    body: JSON.stringify({ scheduled_time: scheduledTime }),
-  });
-}
-
-// Repost a failed post
-export async function repostPost(postId: number): Promise<void> {
-  await postsFetch(`/posts/${postId}/repost`, {
-    method: "POST",
-  });
-}
-
-// =====================================================
-// PAYMENT ENDPOINTS
-// =====================================================
 
 export interface PaymentInitiateResponse {
   payment_id: string;
@@ -159,6 +162,172 @@ export interface PostPayment {
   updated_at: string;
 }
 
+async function postsFetch(path: string, options: RequestInit = {}) {
+  const res = await fetch(`${API_URL}${path}`, {
+    ...options,
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    },
+  });
+
+  if (!res.ok) {
+    let errorMessage = "Request failed";
+    try {
+      const data = await res.json();
+      errorMessage = data.detail || data.message || data.error || errorMessage;
+    } catch {
+      try {
+        const text = await res.text();
+        if (text) errorMessage = text;
+      } catch {}
+    }
+    throw new Error(errorMessage);
+  }
+
+  if (res.status === 204) {
+    return null;
+  }
+
+  return res.json();
+}
+
+// =====================================================
+// POST CRUD OPERATIONS
+// =====================================================
+
+// List all posts
+export async function listPosts(): Promise<Post[]> {
+  return postsFetch("/posts");
+}
+
+// Create a new post (basic)
+export async function createPost(data: CreatePostData): Promise<CreatePostResponse> {
+  return postsFetch("/posts/", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+// Create a post with AI engagement automation
+export async function createPostWithEngagement(
+  data: CreatePostData
+): Promise<CreatePostWithEngagementResponse> {
+  return postsFetch("/posts/with-engagement", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+// Get a single post by ID
+export async function getPost(postId: number): Promise<Post> {
+  return postsFetch(`/posts/post/${postId}`);
+}
+
+// Get post status
+export async function getPostStatus(postId: number): Promise<PostStatus> {
+  return postsFetch(`/posts/${postId}/status`);
+}
+
+// Execute a post immediately
+export async function executePost(postId: number): Promise<{ message: string }> {
+  return postsFetch(`/posts/${postId}/execute`, {
+    method: "POST",
+  });
+}
+
+// Cancel a scheduled post
+export async function cancelPost(postId: number): Promise<{ message: string }> {
+  return postsFetch(`/posts/${postId}/cancel`, {
+    method: "PATCH",
+  });
+}
+
+// Reschedule a post
+export async function reschedulePost(
+  postId: number,
+  scheduledTime: string
+): Promise<{ message: string }> {
+  return postsFetch(`/posts/${postId}/reschedule`, {
+    method: "PATCH",
+    body: JSON.stringify({ scheduled_time: scheduledTime }),
+  });
+}
+
+// Repost a failed post
+export async function repostPost(postId: number): Promise<{ message: string }> {
+  return postsFetch(`/posts/${postId}/repost`, {
+    method: "POST",
+  });
+}
+
+// =====================================================
+// COMMENT JOBS MANAGEMENT
+// =====================================================
+
+// Get all comment jobs for a post
+export async function getPostComments(postId: number): Promise<CommentJob[]> {
+  return postsFetch(`/posts/${postId}/comments`);
+}
+
+// Cancel a scheduled comment job
+export async function cancelCommentJob(jobId: number): Promise<{ message: string }> {
+  return postsFetch(`/posts/comments/${jobId}`, {
+    method: "DELETE",
+  });
+}
+
+// Retry a failed comment job
+export async function retryCommentJob(jobId: number): Promise<{ message: string }> {
+  return postsFetch(`/posts/comments/${jobId}/retry`, {
+    method: "POST",
+  });
+}
+
+// =====================================================
+// DM JOBS MANAGEMENT
+// =====================================================
+
+// Get all DM jobs for a post
+export async function getPostDMs(postId: number): Promise<DMJob[]> {
+  return postsFetch(`/posts/${postId}/dms`);
+}
+
+// Cancel a scheduled DM job
+export async function cancelDMJob(jobId: number): Promise<{ message: string }> {
+  return postsFetch(`/posts/dms/${jobId}`, {
+    method: "DELETE",
+  });
+}
+
+// Retry a failed DM job
+export async function retryDMJob(jobId: number): Promise<{ message: string }> {
+  return postsFetch(`/posts/dms/${jobId}/retry`, {
+    method: "POST",
+  });
+}
+
+// =====================================================
+// TWITTER/X SPECIFIC
+// =====================================================
+
+// Get tweet metrics
+export async function getTweetMetrics(tweetId: string): Promise<{
+  likes: number;
+  retweets: number;
+  replies: number;
+  quotes: number;
+  impressions: number;
+  bookmarks: number;
+}> {
+  return postsFetch(`/api/twitter/metrics/${tweetId}`);
+}
+
+// =====================================================
+// PAYMENT ENDPOINTS
+// =====================================================
+
 // Initiate payment for creating a post
 export async function initiatePostPayment(
   data: CreatePostData
@@ -182,4 +351,63 @@ export async function getMyPayments(
 ): Promise<PostPayment[]> {
   const query = status ? `?status=${status}` : "";
   return postsFetch(`/posts/my-payments${query}`);
+}
+
+// =====================================================
+// UTILITY FUNCTIONS
+// =====================================================
+
+// Format post status for display
+export function formatPostStatus(status: string): { label: string; color: string } {
+  const statusMap: Record<string, { label: string; color: string }> = {
+    pending: { label: "Pending", color: "bg-yellow-100 text-yellow-800" },
+    processing: { label: "Processing", color: "bg-blue-100 text-blue-800" },
+    scheduled: { label: "Scheduled", color: "bg-purple-100 text-purple-800" },
+    posted: { label: "Posted", color: "bg-green-100 text-green-800" },
+    completed: { label: "Completed", color: "bg-green-100 text-green-800" },
+    failed: { label: "Failed", color: "bg-red-100 text-red-800" },
+    cancelled: { label: "Cancelled", color: "bg-gray-100 text-gray-800" },
+  };
+  return statusMap[status.toLowerCase()] || { label: status, color: "bg-gray-100 text-gray-800" };
+}
+
+// Format comment job status for display
+export function formatCommentJobStatus(status: string): { label: string; color: string } {
+  const statusMap: Record<string, { label: string; color: string }> = {
+    pending: { label: "Scheduled", color: "bg-purple-100 text-purple-800" },
+    processing: { label: "Posting...", color: "bg-blue-100 text-blue-800" },
+    completed: { label: "Posted", color: "bg-green-100 text-green-800" },
+    failed: { label: "Failed", color: "bg-red-100 text-red-800" },
+    cancelled: { label: "Cancelled", color: "bg-gray-100 text-gray-800" },
+  };
+  return statusMap[status.toLowerCase()] || { label: status, color: "bg-gray-100 text-gray-800" };
+}
+
+// Format DM job status for display
+export function formatDMJobStatus(status: string): { label: string; color: string } {
+  const statusMap: Record<string, { label: string; color: string }> = {
+    pending: { label: "Scheduled", color: "bg-purple-100 text-purple-800" },
+    processing: { label: "Sending...", color: "bg-blue-100 text-blue-800" },
+    completed: { label: "Sent", color: "bg-green-100 text-green-800" },
+    failed: { label: "Failed", color: "bg-red-100 text-red-800" },
+    cancelled: { label: "Cancelled", color: "bg-gray-100 text-gray-800" },
+  };
+  return statusMap[status.toLowerCase()] || { label: status, color: "bg-gray-100 text-gray-800" };
+}
+
+// Check if a post has AI engagement enabled
+export function hasAIEngagement(post: Post): boolean {
+  return !!(post.ai_comment_enabled || post.ai_dms_enabled);
+}
+
+// Get engagement summary for a post
+export function getEngagementSummary(post: Post): string {
+  const parts = [];
+  if (post.ai_comment_enabled) {
+    parts.push(`${post.ai_comment_count || 0} AI comments`);
+  }
+  if (post.ai_dms_enabled) {
+    parts.push(`AI DMs`);
+  }
+  return parts.length > 0 ? parts.join(" • ") : "No AI engagement";
 }
