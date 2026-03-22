@@ -18,7 +18,6 @@ export default function LandingPage() {
   const router = useRouter();
   const checkAuth = useAuthStore((s) => s.checkAuth);
   const user = useAuthStore((s) => s.user);
-  const loading = useAuthStore((s) => s.loading);
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
@@ -31,26 +30,25 @@ export default function LandingPage() {
     }
   }, [checked, user, router]);
 
-  // Show nothing while checking auth to avoid flash
   if (!checked) {
     return (
-      <div className="min-h-screen bg-[#0B1220] flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-gray-200 border-t-[#1D4ED8] rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <main className="bg-[#0B1220] text-white overflow-hidden">
+    <main className="bg-white text-gray-900 overflow-hidden">
 
       {/* ── NAVBAR ── */}
-      <nav className="fixed top-0 w-full z-50 bg-[#0B1220]/80 backdrop-blur-md border-b border-white/10">
+      <nav className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-md border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <span className="font-bold text-xl tracking-tight">AutoPlatform</span>
+          <span className="font-bold text-xl tracking-tight text-gray-900">AutoPlatform</span>
           <div className="flex gap-3">
             <button
               onClick={() => router.push("/login")}
-              className="px-4 py-2 text-sm text-gray-300 hover:text-white transition rounded-lg hover:bg-white/5"
+              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 transition rounded-lg hover:bg-gray-100"
             >
               Login
             </button>
@@ -65,18 +63,17 @@ export default function LandingPage() {
       </nav>
 
       {/* ── HERO ── */}
-      <section className="min-h-screen flex flex-col justify-center items-center text-center px-6 pt-20 relative">
-        <div className="absolute inset-0 bg-gradient-radial from-[#1D4ED8]/20 via-transparent to-transparent" />
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#1D4ED8]/10 rounded-full blur-3xl pointer-events-none" />
+      <section className="min-h-screen flex flex-col justify-center items-center text-center px-6 pt-20 relative bg-gradient-to-b from-slate-50 to-white">
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-blue-100/60 rounded-full blur-3xl pointer-events-none" />
 
         <motion.div
           variants={fadeUp}
           initial="hidden"
           animate="show"
           custom={0}
-          className="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-1.5 text-sm text-gray-300 mb-6"
+          className="inline-flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-full px-4 py-1.5 text-sm text-blue-700 mb-6"
         >
-          <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
           One Platform. Unlimited Reach.
         </motion.div>
 
@@ -85,10 +82,10 @@ export default function LandingPage() {
           initial="hidden"
           animate="show"
           custom={1}
-          className="text-5xl md:text-7xl font-bold leading-tight max-w-5xl"
+          className="text-5xl md:text-7xl font-bold leading-tight max-w-5xl text-gray-900"
         >
           Control Thousands of Accounts.{" "}
-          <span className="text-[#3B82F6]">Post Everywhere.</span>{" "}
+          <span className="text-[#1D4ED8]">Post Everywhere.</span>{" "}
           Go Viral Faster.
         </motion.h1>
 
@@ -97,7 +94,7 @@ export default function LandingPage() {
           initial="hidden"
           animate="show"
           custom={2}
-          className="mt-6 text-lg text-gray-400 max-w-2xl"
+          className="mt-6 text-lg text-gray-500 max-w-2xl"
         >
           Manage, schedule, and publish content across thousands of social media
           accounts — all from one powerful dashboard. No more switching logins.
@@ -113,13 +110,13 @@ export default function LandingPage() {
         >
           <button
             onClick={() => router.push("/register")}
-            className="px-8 py-3.5 bg-[#1D4ED8] hover:bg-[#2563EB] text-white rounded-xl font-medium text-base transition"
+            className="px-8 py-3.5 bg-[#1D4ED8] hover:bg-[#2563EB] text-white rounded-xl font-medium text-base transition shadow-md shadow-blue-200"
           >
             Get Started Free
           </button>
           <button
             onClick={() => router.push("/login")}
-            className="px-8 py-3.5 border border-white/20 text-gray-300 hover:text-white hover:border-white/40 rounded-xl font-medium text-base transition"
+            className="px-8 py-3.5 border border-gray-300 text-gray-700 hover:border-gray-400 hover:text-gray-900 rounded-xl font-medium text-base transition"
           >
             Sign In
           </button>
@@ -139,8 +136,8 @@ export default function LandingPage() {
             ["10x", "Faster Growth"],
           ].map(([num, label]) => (
             <div key={label} className="text-center">
-              <div className="text-3xl font-bold text-white">{num}</div>
-              <div className="text-sm text-gray-500 mt-1">{label}</div>
+              <div className="text-3xl font-bold text-gray-900">{num}</div>
+              <div className="text-sm text-gray-400 mt-1">{label}</div>
             </div>
           ))}
         </motion.div>
@@ -155,10 +152,10 @@ export default function LandingPage() {
           viewport={{ once: true }}
           className="text-center mb-16"
         >
-          <h2 className="text-4xl md:text-5xl font-bold mb-4">
+          <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">
             Multiply Your Viral Potential
           </h2>
-          <p className="text-gray-400 max-w-xl mx-auto">
+          <p className="text-gray-500 max-w-xl mx-auto">
             Going viral isn't luck — it's probability. The more accounts you
             control, the more platforms you publish to, the higher your chances
             of explosive reach.
@@ -205,19 +202,18 @@ export default function LandingPage() {
               whileInView="show"
               viewport={{ once: true }}
               custom={i * 0.05}
-              className="bg-[#111827] border border-[#1F2937] hover:border-[#1D4ED8]/60 rounded-2xl p-6 transition group"
+              className="bg-white border border-gray-200 hover:border-blue-300 hover:shadow-md rounded-2xl p-6 transition group"
             >
               <div className="text-3xl mb-3">{item.icon}</div>
-              <h3 className="font-semibold text-white mb-2">{item.title}</h3>
-              <p className="text-gray-400 text-sm leading-relaxed">{item.desc}</p>
+              <h3 className="font-semibold text-gray-900 mb-2">{item.title}</h3>
+              <p className="text-gray-500 text-sm leading-relaxed">{item.desc}</p>
             </motion.div>
           ))}
         </div>
       </section>
 
       {/* ── AI CLIPPING ── */}
-      <section className="py-28 px-6 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[#1D4ED8]/5 blur-3xl pointer-events-none" />
+      <section className="py-28 px-6 relative overflow-hidden bg-slate-50">
         <div className="max-w-6xl mx-auto relative">
           <motion.div
             variants={fadeUp}
@@ -226,13 +222,13 @@ export default function LandingPage() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <span className="text-[#3B82F6] text-sm font-medium uppercase tracking-widest">
+            <span className="text-[#1D4ED8] text-sm font-semibold uppercase tracking-widest">
               AI Powered
             </span>
-            <h2 className="text-4xl md:text-5xl font-bold mt-2 mb-4">
+            <h2 className="text-4xl md:text-5xl font-bold mt-2 mb-4 text-gray-900">
               AI Clipping & Content Automation
             </h2>
-            <p className="text-gray-400 max-w-xl mx-auto">
+            <p className="text-gray-500 max-w-xl mx-auto">
               Turn long-form content into viral-ready clips in seconds. Upload
               once. Generate dozens of assets instantly.
             </p>
@@ -268,12 +264,12 @@ export default function LandingPage() {
                 whileInView="show"
                 viewport={{ once: true }}
                 custom={i * 0.08}
-                className="bg-[#111827] border border-[#1F2937] rounded-2xl p-6 flex gap-4"
+                className="bg-white border border-gray-200 rounded-2xl p-6 flex gap-4 shadow-sm"
               >
                 <div className="text-2xl mt-0.5">{item.icon}</div>
                 <div>
-                  <h3 className="font-semibold text-white mb-1">{item.title}</h3>
-                  <p className="text-gray-400 text-sm leading-relaxed">{item.desc}</p>
+                  <h3 className="font-semibold text-gray-900 mb-1">{item.title}</h3>
+                  <p className="text-gray-500 text-sm leading-relaxed">{item.desc}</p>
                 </div>
               </motion.div>
             ))}
@@ -290,13 +286,13 @@ export default function LandingPage() {
             whileInView="show"
             viewport={{ once: true }}
           >
-            <span className="text-[#3B82F6] text-sm font-medium uppercase tracking-widest">
+            <span className="text-[#1D4ED8] text-sm font-semibold uppercase tracking-widest">
               Full Control
             </span>
-            <h2 className="text-4xl font-bold mt-2 mb-4">
+            <h2 className="text-4xl font-bold mt-2 mb-4 text-gray-900">
               Link & Control Everything
             </h2>
-            <p className="text-gray-400 mb-8 leading-relaxed">
+            <p className="text-gray-500 mb-8 leading-relaxed">
               Connect social accounts, niche pages, brand networks, client
               portfolios, and influencer accounts. Assign permissions, organize
               into groups, and control publishing rules — all from one secure
@@ -310,9 +306,9 @@ export default function LandingPage() {
                 "Influencer accounts",
                 "Group-based permissions",
               ].map((item) => (
-                <li key={item} className="flex items-center gap-3 text-gray-300">
-                  <span className="w-5 h-5 rounded-full bg-[#1D4ED8]/20 border border-[#1D4ED8]/40 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-3 h-3 text-[#3B82F6]" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                <li key={item} className="flex items-center gap-3 text-gray-700">
+                  <span className="w-5 h-5 rounded-full bg-blue-100 border border-blue-200 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-3 h-3 text-[#1D4ED8]" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                   </span>
@@ -338,10 +334,10 @@ export default function LandingPage() {
             ].map((stat) => (
               <div
                 key={stat.label}
-                className="bg-[#111827] border border-[#1F2937] rounded-2xl p-6 text-center"
+                className="bg-slate-50 border border-gray-200 rounded-2xl p-6 text-center"
               >
-                <div className="text-2xl font-bold text-white">{stat.value}</div>
-                <div className="text-sm text-gray-500 mt-1">{stat.label}</div>
+                <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
+                <div className="text-sm text-gray-400 mt-1">{stat.label}</div>
               </div>
             ))}
           </motion.div>
@@ -349,7 +345,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── DATA DRIVEN ── */}
-      <section className="py-28 px-6 bg-[#0D1526]">
+      <section className="py-28 px-6 bg-slate-50">
         <div className="max-w-6xl mx-auto text-center">
           <motion.div
             variants={fadeUp}
@@ -357,13 +353,13 @@ export default function LandingPage() {
             whileInView="show"
             viewport={{ once: true }}
           >
-            <span className="text-[#3B82F6] text-sm font-medium uppercase tracking-widest">
+            <span className="text-[#1D4ED8] text-sm font-semibold uppercase tracking-widest">
               Analytics
             </span>
-            <h2 className="text-4xl md:text-5xl font-bold mt-2 mb-4">
+            <h2 className="text-4xl md:text-5xl font-bold mt-2 mb-4 text-gray-900">
               Data-Driven Growth Engine
             </h2>
-            <p className="text-gray-400 max-w-xl mx-auto mb-16">
+            <p className="text-gray-500 max-w-xl mx-auto mb-16">
               Every post becomes data. Track, analyze, and automatically scale
               what works. You're not guessing anymore — you're optimizing.
             </p>
@@ -385,10 +381,10 @@ export default function LandingPage() {
                 whileInView="show"
                 viewport={{ once: true }}
                 custom={i * 0.05}
-                className="bg-[#111827] border border-[#1F2937] hover:border-[#1D4ED8]/50 rounded-2xl p-5 flex items-center gap-4 transition"
+                className="bg-white border border-gray-200 hover:border-blue-300 hover:shadow-sm rounded-2xl p-5 flex items-center gap-4 transition"
               >
                 <span className="text-2xl">{item.icon}</span>
-                <span className="text-gray-300 font-medium">{item.label}</span>
+                <span className="text-gray-700 font-medium">{item.label}</span>
               </motion.div>
             ))}
           </div>
@@ -403,8 +399,8 @@ export default function LandingPage() {
           whileInView="show"
           viewport={{ once: true }}
         >
-          <h2 className="text-4xl md:text-5xl font-bold mb-6">Why It Works</h2>
-          <p className="text-gray-400 text-lg mb-12">
+          <h2 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900">Why It Works</h2>
+          <p className="text-gray-500 text-lg mb-12">
             Virality is a numbers game powered by strategy. When you combine
             massive distribution, AI-powered optimization, real-time feedback,
             and automated scaling — you dramatically increase your statistical
@@ -426,9 +422,9 @@ export default function LandingPage() {
               whileInView="show"
               viewport={{ once: true }}
               custom={i * 0.1}
-              className="bg-[#111827] border border-[#1F2937] rounded-2xl p-5"
+              className="bg-blue-50 border border-blue-100 rounded-2xl p-5"
             >
-              <div className="text-[#3B82F6] font-bold text-lg">{item.stat}</div>
+              <div className="text-[#1D4ED8] font-bold text-lg">{item.stat}</div>
               <div className="text-gray-500 text-sm mt-1">{item.sub}</div>
             </motion.div>
           ))}
@@ -436,8 +432,8 @@ export default function LandingPage() {
       </section>
 
       {/* ── CTA ── */}
-      <section className="py-32 px-6 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1D4ED8]/20 to-transparent blur-2xl pointer-events-none" />
+      <section className="py-32 px-6 relative overflow-hidden bg-slate-50">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-100/60 to-transparent pointer-events-none" />
         <motion.div
           variants={fadeUp}
           initial="hidden"
@@ -445,27 +441,27 @@ export default function LandingPage() {
           viewport={{ once: true }}
           className="relative max-w-3xl mx-auto text-center"
         >
-          <h2 className="text-5xl md:text-6xl font-bold mb-6">
+          <h2 className="text-5xl md:text-6xl font-bold mb-6 text-gray-900">
             Ready to Scale?
           </h2>
-          <p className="text-gray-400 text-lg mb-4">
+          <p className="text-gray-500 text-lg mb-4">
             Stop managing accounts one by one.
             <br />
             Start building a distribution machine.
           </p>
-          <p className="text-gray-500 mb-10 text-sm">
+          <p className="text-gray-400 mb-10 text-sm">
             Link your accounts. Power your content. Increase your viral probability.
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
             <button
               onClick={() => router.push("/register")}
-              className="px-10 py-4 bg-[#1D4ED8] hover:bg-[#2563EB] text-white rounded-xl font-semibold text-lg transition"
+              className="px-10 py-4 bg-[#1D4ED8] hover:bg-[#2563EB] text-white rounded-xl font-semibold text-lg transition shadow-md shadow-blue-200"
             >
               Get Started Today
             </button>
             <button
               onClick={() => router.push("/login")}
-              className="px-10 py-4 border border-white/20 hover:border-white/40 text-gray-300 hover:text-white rounded-xl font-semibold text-lg transition"
+              className="px-10 py-4 border border-gray-300 text-gray-700 hover:border-gray-400 hover:text-gray-900 rounded-xl font-semibold text-lg transition"
             >
               Sign In
             </button>
@@ -474,7 +470,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── FOOTER ── */}
-      <footer className="py-10 text-center text-gray-600 border-t border-[#1F2937] text-sm">
+      <footer className="py-10 text-center text-gray-400 border-t border-gray-200 bg-white text-sm">
         © {new Date().getFullYear()} AutoPlatform. All rights reserved.
       </footer>
     </main>

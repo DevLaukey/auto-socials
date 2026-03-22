@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Bell, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -35,10 +35,6 @@ export default function Topbar({ title, onMenuClick }: TopbarProps) {
       </div>
 
       <div className="flex items-center gap-2 md:gap-4">
-        <button className="p-2 rounded-md hover:bg-slate-100">
-          <Bell size={18} />
-        </button>
-
         <DropdownMenu>
           <DropdownMenuTrigger>
             <Avatar className="h-8 w-8 md:h-10 md:w-10">

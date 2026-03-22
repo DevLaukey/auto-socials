@@ -3,7 +3,7 @@
 import {
   LayoutDashboard,
   MessageSquare,
-  Bell,
+
   Share2,
   BarChart3,
   Settings,
@@ -26,7 +26,7 @@ const navItems = [
   { label: "Posts", href: "/posts", icon: Send },
   { label: "Payments", href: "/payments", icon: CreditCard },
   { label: "AI Clips", href: "/clips", icon: Scissors },
-  { label: "Notifications", href: "/notifications", icon: Bell },
+
   { label: "Messages", href: "/messages", icon: MessageSquare },
   { label: "Analytics", href: "/analytics", icon: BarChart3 },
   { label: "Settings", href: "/settings", icon: Settings },
