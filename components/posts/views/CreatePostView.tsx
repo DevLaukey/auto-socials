@@ -8,11 +8,23 @@ import PostMetadataModal from "../modals/PostMetadataModal";
 import PlatformAccounts from "../widgets/PlatformAccounts";
 import AIEngagementSettings from "../widgets/AIEngagementSettings";
 import TwitterThreadBuilder from "../widgets/TwitterThreadBuilder";
-import { createPost, createPostWithEngagement } from "@/src/lib/posts";
+import {
+  createPost,
+  createPostWithEngagement,
+  type CreatePostResponse,
+  type CreatePostWithEngagementResponse,
+} from "@/src/lib/posts";
 import api from "@/lib/api";
 import { useAuthStore } from "@/src/store/authStore";
 
 type Platform = "instagram" | "youtube" | "twitter";
+
+// Type guard to check if result has engagement_jobs
+function hasEngagementJobs(
+  result: any,
+): result is CreatePostWithEngagementResponse {
+  return result && typeof result === "object" && "engagement_jobs" in result;
+}
 
 export default function CreatePostView() {
   const router = useRouter();
@@ -276,7 +288,7 @@ export default function CreatePostView() {
       }
 
       // Use createPostWithEngagement if any AI engagement is enabled
-      let result;
+      let result: CreatePostResponse | CreatePostWithEngagementResponse;
       if (
         engagementSettings.ai_comments_enabled ||
         engagementSettings.ai_dms_enabled
@@ -316,7 +328,9 @@ export default function CreatePostView() {
 
         // Build success message with engagement info
         let successText = `Clip ${currentClipNum} of ${pendingClips.length} posted successfully!`;
-        if (result?.engagement_jobs) {
+
+        // Check if result has engagement_jobs (only true for createPostWithEngagement)
+        if (hasEngagementJobs(result)) {
           const commentCount = result.engagement_jobs.comments?.length || 0;
           const dmCount = result.engagement_jobs.dms?.length || 0;
           if (commentCount > 0 || dmCount > 0) {
@@ -362,7 +376,8 @@ export default function CreatePostView() {
           ? "Clip posted successfully!"
           : "Post created successfully!";
 
-        if (result?.engagement_jobs) {
+        // Check if result has engagement_jobs (only true for createPostWithEngagement)
+        if (hasEngagementJobs(result)) {
           const commentCount = result.engagement_jobs.comments?.length || 0;
           const dmCount = result.engagement_jobs.dms?.length || 0;
           if (commentCount > 0 || dmCount > 0) {

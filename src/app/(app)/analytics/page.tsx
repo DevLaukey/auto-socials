@@ -22,26 +22,32 @@ import ConversationList from "@/components/analytics/ConversationList";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { CalendarIcon, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
+import { DateRange } from "react-day-picker";
 
 export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsResponse | null>(null);
-  const [commentStats, setCommentStats] = useState<CommentAnalytics | null>(null);
+  const [commentStats, setCommentStats] = useState<CommentAnalytics | null>(
+    null,
+  );
   const [dmStats, setDMStats] = useState<DMAnalytics | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [twitterMetrics, setTwitterMetrics] = useState<TwitterMetrics | null>(null);
-  
+  const [twitterMetrics, setTwitterMetrics] = useState<TwitterMetrics | null>(
+    null,
+  );
+
   const [loading, setLoading] = useState(true);
   const [loadingEngagement, setLoadingEngagement] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
-  const [dateRange, setDateRange] = useState<{
-    from: Date | undefined;
-    to: Date | undefined;
-  }>({
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
     to: new Date(),
   });
@@ -52,7 +58,11 @@ export default function AnalyticsPage() {
   }, []);
 
   useEffect(() => {
-    if (activeTab === "engagement" || activeTab === "twitter" || activeTab === "conversations") {
+    if (
+      activeTab === "engagement" ||
+      activeTab === "twitter" ||
+      activeTab === "conversations"
+    ) {
       loadEngagementData();
     }
   }, [activeTab, days]);
@@ -88,13 +98,13 @@ export default function AnalyticsPage() {
     }
   };
 
-  const handleDateRangeChange = (range: { from?: Date; to?: Date }) => {
-    if (range.from && range.to) {
+  const handleDateRangeChange = (range: DateRange | undefined) => {
+    if (range?.from && range?.to) {
       const diffDays = Math.ceil(
-        (range.to.getTime() - range.from.getTime()) / (1000 * 60 * 60 * 24)
+        (range.to.getTime() - range.from.getTime()) / (1000 * 60 * 60 * 24),
       );
       setDays(diffDays);
-      setDateRange({ from: range.from, to: range.to });
+      setDateRange(range);
     }
   };
 
@@ -137,13 +147,13 @@ export default function AnalyticsPage() {
       {/* Header with date range picker */}
       <div className="flex justify-between items-center">
         <AnalyticsHeader />
-        
+
         <div className="flex items-center gap-3">
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" className="gap-2">
                 <CalendarIcon className="h-4 w-4" />
-                {dateRange.from && dateRange.to ? (
+                {dateRange?.from && dateRange?.to ? (
                   <>
                     {format(dateRange.from, "LLL dd, y")} -{" "}
                     {format(dateRange.to, "LLL dd, y")}
@@ -171,7 +181,11 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Tabs Navigation */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="space-y-4"
+      >
         <TabsList className="grid w-full max-w-2xl grid-cols-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="engagement">AI Engagement</TabsTrigger>
@@ -202,8 +216,12 @@ export default function AnalyticsPage() {
               <h3 className="font-semibold mb-3">Quick Engagement Summary</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Comments</p>
-                  <p className="text-xl font-semibold">{commentStats.summary.total}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Total Comments
+                  </p>
+                  <p className="text-xl font-semibold">
+                    {commentStats.summary.total}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Success Rate</p>
@@ -216,8 +234,12 @@ export default function AnalyticsPage() {
                   <p className="text-xl font-semibold">{dmStats.jobs.total}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Active Conversations</p>
-                  <p className="text-xl font-semibold">{dmStats.conversations.active_7d}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Active Conversations
+                  </p>
+                  <p className="text-xl font-semibold">
+                    {dmStats.conversations.active_7d}
+                  </p>
                 </div>
               </div>
             </Card>

@@ -29,6 +29,8 @@ export interface CommentAnalytics {
     processing: number;
     success_rate: number;
     avg_delay_minutes: number;
+    last_executed?: string | null;
+    first_job?: string | null;
   };
   platform_breakdown: Array<{
     platform: string;
@@ -47,14 +49,18 @@ export interface CommentAnalytics {
 /**
  * Get all comment jobs for a post
  */
-export const getPostComments = async (postId: number): Promise<CommentJob[]> => {
+export const getPostComments = async (
+  postId: number,
+): Promise<CommentJob[]> => {
   return apiFetch(`/posts/${postId}/comments`);
 };
 
 /**
  * Cancel a scheduled comment job
  */
-export const cancelCommentJob = async (jobId: number): Promise<{ message: string }> => {
+export const cancelCommentJob = async (
+  jobId: number,
+): Promise<{ message: string }> => {
   return apiFetch(`/posts/comments/${jobId}`, {
     method: "DELETE",
   });
@@ -65,7 +71,7 @@ export const cancelCommentJob = async (jobId: number): Promise<{ message: string
  */
 export const getCommentAnalytics = async (
   days: number = 30,
-  status?: string
+  status?: string,
 ): Promise<CommentAnalytics> => {
   let url = `/analytics/engagement/comments?days=${days}`;
   if (status) url += `&status=${status}`;
@@ -75,7 +81,9 @@ export const getCommentAnalytics = async (
 /**
  * Retry a failed comment job
  */
-export const retryCommentJob = async (jobId: number): Promise<{ message: string }> => {
+export const retryCommentJob = async (
+  jobId: number,
+): Promise<{ message: string }> => {
   return apiFetch(`/comments/${jobId}/retry`, {
     method: "POST",
   });
