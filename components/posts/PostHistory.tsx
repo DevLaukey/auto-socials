@@ -16,6 +16,8 @@ import { Input } from "@/components/ui/input";
 import {
   Post,
   PostStatus,
+  CommentJob,
+  DMJob,
   listPosts,
   getPost,
   getPostStatus,
@@ -23,6 +25,12 @@ import {
   cancelPost,
   reschedulePost,
   repostPost,
+  getPostComments,
+  cancelCommentJob,
+  getPostDMs,
+  cancelDMJob,
+  formatCommentJobStatus,
+  formatDMJobStatus,
 } from "@/src/lib/posts";
 
 export default function PostHistory() {
@@ -35,6 +43,11 @@ export default function PostHistory() {
   const [viewPost, setViewPost] = useState<Post | null>(null);
   const [postStatus, setPostStatus] = useState<PostStatus | null>(null);
   const [statusLoading, setStatusLoading] = useState(false);
+
+  // Engagement jobs
+  const [commentJobs, setCommentJobs] = useState<CommentJob[]>([]);
+  const [dmJobs, setDmJobs] = useState<DMJob[]>([]);
+  const [jobActionLoading, setJobActionLoading] = useState<number | null>(null);
 
   // Reschedule dialog
   const [rescheduleDialog, setRescheduleDialog] = useState<Post | null>(null);
@@ -65,17 +78,51 @@ export default function PostHistory() {
     setViewPost(post);
     setStatusLoading(true);
     setPostStatus(null);
+    setCommentJobs([]);
+    setDmJobs([]);
     try {
-      const [fullPost, status] = await Promise.all([
+      const [fullPost, status, comments, dms] = await Promise.all([
         getPost(post.id),
         getPostStatus(post.id),
+        getPostComments(post.id).catch(() => []),
+        getPostDMs(post.id).catch(() => []),
       ]);
       setViewPost(fullPost);
       setPostStatus(status);
+      setCommentJobs(comments ?? []);
+      setDmJobs(dms ?? []);
     } catch (err: any) {
       console.error("Failed to load post details:", err);
     } finally {
       setStatusLoading(false);
+    }
+  }
+
+  async function handleCancelComment(jobId: number) {
+    if (!viewPost) return;
+    setJobActionLoading(jobId);
+    try {
+      await cancelCommentJob(jobId);
+      const updated = await getPostComments(viewPost.id).catch(() => []);
+      setCommentJobs(updated ?? []);
+    } catch (err: any) {
+      alert(err.message || "Failed to cancel comment job");
+    } finally {
+      setJobActionLoading(null);
+    }
+  }
+
+  async function handleCancelDM(jobId: number) {
+    if (!viewPost) return;
+    setJobActionLoading(jobId);
+    try {
+      await cancelDMJob(jobId);
+      const updated = await getPostDMs(viewPost.id).catch(() => []);
+      setDmJobs(updated ?? []);
+    } catch (err: any) {
+      alert(err.message || "Failed to cancel DM job");
+    } finally {
+      setJobActionLoading(null);
     }
   }
 
@@ -304,6 +351,9 @@ export default function PostHistory() {
                   Scheduled
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  AI Jobs
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Created
                 </th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
@@ -314,13 +364,13 @@ export default function PostHistory() {
             <tbody className="divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
                     Loading posts...
                   </td>
                 </tr>
               ) : posts.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
                     No posts found. Create your first post to get started.
                   </td>
                 </tr>
@@ -365,6 +415,23 @@ export default function PostHistory() {
                       ) : (
                         "-"
                       )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-1.5 flex-wrap">
+                        {(post.comment_jobs_count ?? 0) > 0 && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-purple-100 text-purple-700">
+                            💬 {post.comment_jobs_count}
+                          </span>
+                        )}
+                        {(post.dm_jobs_count ?? 0) > 0 && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-700">
+                            ✉️ {post.dm_jobs_count}
+                          </span>
+                        )}
+                        {!post.comment_jobs_count && !post.dm_jobs_count && (
+                          <span className="text-gray-300 text-xs">—</span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-500">
                       {new Date(post.created_at).toLocaleDateString()}
@@ -478,6 +545,95 @@ export default function PostHistory() {
                   <p className="text-gray-900">
                     {new Date(postStatus.executed_at).toLocaleString()}
                   </p>
+                </div>
+              )}
+
+              {/* Scheduled Comment Jobs */}
+              {commentJobs.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium text-gray-500 block mb-2">
+                    AI Comment Jobs ({commentJobs.length})
+                  </label>
+                  <div className="space-y-2">
+                    {commentJobs.map((job) => {
+                      const s = formatCommentJobStatus(job.status);
+                      return (
+                        <div
+                          key={job.job_id}
+                          className="flex items-start justify-between gap-3 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-sm"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-gray-800 truncate">{job.comment}</p>
+                            {job.scheduled_time && (
+                              <p className="text-xs text-gray-400 mt-0.5">
+                                {new Date(job.scheduled_time).toLocaleString()}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.color}`}>
+                              {s.label}
+                            </span>
+                            {job.status === "pending" && (
+                              <button
+                                onClick={() => handleCancelComment(job.job_id)}
+                                disabled={jobActionLoading === job.job_id}
+                                className="text-xs text-red-500 hover:text-red-700 disabled:opacity-40"
+                              >
+                                {jobActionLoading === job.job_id ? "…" : "Cancel"}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Scheduled DM Jobs */}
+              {dmJobs.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium text-gray-500 block mb-2">
+                    AI DM Jobs ({dmJobs.length})
+                  </label>
+                  <div className="space-y-2">
+                    {dmJobs.map((job) => {
+                      const s = formatDMJobStatus(job.status);
+                      return (
+                        <div
+                          key={job.job_id}
+                          className="flex items-start justify-between gap-3 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-sm"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-gray-400 mb-0.5">
+                              To: <span className="font-medium text-gray-600">@{job.recipient}</span>
+                            </p>
+                            <p className="text-gray-800 truncate">{job.message}</p>
+                            {job.scheduled_time && (
+                              <p className="text-xs text-gray-400 mt-0.5">
+                                {new Date(job.scheduled_time).toLocaleString()}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.color}`}>
+                              {s.label}
+                            </span>
+                            {job.status === "pending" && (
+                              <button
+                                onClick={() => handleCancelDM(job.job_id)}
+                                disabled={jobActionLoading === job.job_id}
+                                className="text-xs text-red-500 hover:text-red-700 disabled:opacity-40"
+                              >
+                                {jobActionLoading === job.job_id ? "…" : "Cancel"}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>
