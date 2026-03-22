@@ -637,6 +637,7 @@ export default function CreatePostView() {
             onSettingsChange={handleEngagementChange}
             onTargetUsersChange={handleTargetUsersChange}
             disabled={executing}
+            platform={activePlatform}
           />
 
           {/* Execute Button */}

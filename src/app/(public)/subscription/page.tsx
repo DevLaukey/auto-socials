@@ -27,23 +27,22 @@ export default function SubscriptionPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState<number | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
-  /**
-   * Load plans
-   */
   useEffect(() => {
     const loadPlans = async () => {
-      const data = await apiFetch("/subscriptions/plans");
-      setPlans(data);
-      setLoading(false);
+      try {
+        const data = await apiFetch("/subscriptions/plans");
+        setPlans(data);
+      } catch (err: any) {
+        setError(err?.message || "Failed to load plans");
+      } finally {
+        setLoading(false);
+      }
     };
-
     loadPlans();
   }, []);
 
-  /**
-   * Redirect if already subscribed
-   */
   useEffect(() => {
     if (
       !loadingAuth &&
@@ -54,33 +53,23 @@ export default function SubscriptionPage() {
     }
   }, [loadingAuth, user, router]);
 
-  /**
-   * Center active card
-   */
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-
     const card = container.children[activeIndex] as HTMLElement;
     if (!card) return;
-
     const containerCenter = container.offsetWidth / 2;
     const cardCenter = card.offsetLeft + card.offsetWidth / 2;
-
-    container.scrollTo({
-      left: cardCenter - containerCenter,
-      behavior: "smooth",
-    });
+    container.scrollTo({ left: cardCenter - containerCenter, behavior: "smooth" });
   }, [activeIndex]);
 
   const startHoverScroll = (direction: "left" | "right") => {
     stopHoverScroll();
-
     hoverIntervalRef.current = setInterval(() => {
       setActiveIndex((prev) =>
         direction === "left"
           ? Math.max(0, prev - 1)
-          : Math.min(plans.length - 1, prev + 1),
+          : Math.min(plans.length - 1, prev + 1)
       );
     }, 350);
   };
@@ -92,34 +81,30 @@ export default function SubscriptionPage() {
     }
   };
 
-  /**
-   * Subscribe → redirect to payment
-   */
   const subscribe = async (planId: number) => {
+    setError(null);
     try {
       setSubmitting(planId);
 
-      const res = await apiFetch("/subscriptions/subscribe", {
+      const res = await apiFetch("/paypal/create-subscription-order", {
         method: "POST",
         body: JSON.stringify({ plan_id: planId }),
       });
 
-      if (!res?.payment_url) {
-        throw new Error("Missing payment URL");
+      if (!res?.approval_url) {
+        throw new Error("Missing PayPal approval URL");
       }
 
-      // 🔑 Redirect to ZeroID payment page
-      window.location.href = res.payment_url;
+      // Redirect user to PayPal to approve payment
+      window.location.href = res.approval_url;
     } catch (err: any) {
-      alert(err?.message || "Failed to start payment");
-    } finally {
+      setError(err?.message || "Failed to start PayPal payment");
       setSubmitting(null);
     }
   };
 
   return (
     <div className="max-w-7xl mx-auto p-8 relative">
-      {/* Back navigation */}
       <button
         onClick={() => router.back()}
         className="mb-6 flex items-center gap-2 text-gray-600 hover:text-gray-900 transition"
@@ -131,101 +116,136 @@ export default function SubscriptionPage() {
       <h1 className="text-3xl font-bold mb-2 text-center">
         Choose a Subscription
       </h1>
-      <p className="text-gray-500 mb-10 text-center">
+      <p className="text-gray-500 mb-2 text-center">
         Subscribe to unlock posting and other features.
       </p>
 
-      {/* LEFT ARROW */}
-      <button
-        onClick={() => setActiveIndex((i) => Math.max(0, i - 1))}
-        onMouseEnter={() => startHoverScroll("left")}
-        onMouseLeave={stopHoverScroll}
-        disabled={activeIndex === 0}
-        className="absolute left-2 top-1/2 -translate-y-1/2 z-10
-                   bg-white shadow-xl rounded-full w-11 h-11
-                   flex items-center justify-center
-                   hover:scale-110 transition disabled:opacity-30"
-      >
-        ‹
-      </button>
+      {/* PayPal badge */}
+      <p className="text-center text-sm text-gray-400 mb-8 flex items-center justify-center gap-2">
+        <svg className="w-4 h-4 text-blue-600" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 2.79A.859.859 0 0 1 5.79 2.1h7.918c2.76 0 4.76.617 5.95 1.835.55.565.91 1.16 1.09 1.8.19.68.19 1.41.01 2.24-.01.04-.02.08-.03.13-.65 3.32-2.88 4.47-5.73 4.47h-1.45c-.35 0-.64.25-.7.6l-.75 4.76-.03.17a.641.641 0 0 1-.633.54H7.076z"/>
+        </svg>
+        Secure payment via PayPal
+      </p>
 
-      {/* RIGHT ARROW */}
-      <button
-        onClick={() => setActiveIndex((i) => Math.min(plans.length - 1, i + 1))}
-        onMouseEnter={() => startHoverScroll("right")}
-        onMouseLeave={stopHoverScroll}
-        disabled={activeIndex === plans.length - 1}
-        className="absolute right-2 top-1/2 -translate-y-1/2 z-10
-                   bg-white shadow-xl rounded-full w-11 h-11
-                   flex items-center justify-center
-                   hover:scale-110 transition disabled:opacity-30"
-      >
-        ›
-      </button>
+      {error && (
+        <div className="mb-6 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm text-center">
+          {error}
+        </div>
+      )}
 
-      {/* CAROUSEL */}
-      <div ref={containerRef} className="flex gap-10 overflow-hidden px-20">
-        {plans.map((plan, index) => {
-          const isActive = index === activeIndex;
+      {loading ? (
+        <div className="flex justify-center py-20">
+          <div className="w-8 h-8 border-4 border-gray-200 border-t-black rounded-full animate-spin" />
+        </div>
+      ) : (
+        <>
+          {/* LEFT ARROW */}
+          <button
+            onClick={() => setActiveIndex((i) => Math.max(0, i - 1))}
+            onMouseEnter={() => startHoverScroll("left")}
+            onMouseLeave={stopHoverScroll}
+            disabled={activeIndex === 0}
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-10
+                       bg-white shadow-xl rounded-full w-11 h-11
+                       flex items-center justify-center text-2xl
+                       hover:scale-110 transition disabled:opacity-30"
+          >
+            ‹
+          </button>
 
-          return (
-            <div
-              key={plan.id}
-              onMouseEnter={() => setActiveIndex(index)}
-              onClick={() => setActiveIndex(index)}
-              className={`
-                flex-shrink-0 w-[340px] cursor-pointer
-                transition-all duration-300 ease-out
-                ${isActive ? "scale-110 z-10" : "scale-90 opacity-60"}
-                hover:scale-[1.03]
-                hover:-translate-y-2
-              `}
-            >
-              <div className="rounded-2xl bg-gray-100 p-4 shadow-lg h-full hover:shadow-2xl transition">
-                <div className="bg-white rounded-xl p-6 h-full flex flex-col justify-between">
-                  <div>
-                    <h2 className="text-xl font-semibold mb-1 text-center">
-                      {plan.name}
-                    </h2>
-                    <p className="text-3xl font-bold text-center mb-4">
-                      ${plan.price}
-                      <span className="text-sm font-normal text-gray-500">/mo</span>
-                    </p>
+          {/* RIGHT ARROW */}
+          <button
+            onClick={() => setActiveIndex((i) => Math.min(plans.length - 1, i + 1))}
+            onMouseEnter={() => startHoverScroll("right")}
+            onMouseLeave={stopHoverScroll}
+            disabled={activeIndex === plans.length - 1}
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-10
+                       bg-white shadow-xl rounded-full w-11 h-11
+                       flex items-center justify-center text-2xl
+                       hover:scale-110 transition disabled:opacity-30"
+          >
+            ›
+          </button>
 
-                    <ul className="space-y-3 text-sm text-gray-600">
-                      <li>
-                        <strong>Channels:</strong> {plan.max_channels}
-                      </li>
-                      <li>
-                        <strong>Posts/day:</strong> {plan.posts_per_day}
-                      </li>
-                      <li>
-                        <strong>Comments/day:</strong> {plan.comments_per_day}
-                      </li>
-                      <li>
-                        <strong>DMs/day:</strong> {plan.dms_per_day}
-                      </li>
-                    </ul>
+          {/* CAROUSEL */}
+          <div ref={containerRef} className="flex gap-10 overflow-hidden px-20">
+            {plans.map((plan, index) => {
+              const isActive = index === activeIndex;
+              return (
+                <div
+                  key={plan.id}
+                  onMouseEnter={() => setActiveIndex(index)}
+                  onClick={() => setActiveIndex(index)}
+                  className={`
+                    flex-shrink-0 w-[340px] cursor-pointer
+                    transition-all duration-300 ease-out
+                    ${isActive ? "scale-110 z-10" : "scale-90 opacity-60"}
+                    hover:scale-[1.03] hover:-translate-y-2
+                  `}
+                >
+                  <div className="rounded-2xl bg-gray-100 p-4 shadow-lg h-full hover:shadow-2xl transition">
+                    <div className="bg-white rounded-xl p-6 h-full flex flex-col justify-between">
+                      <div>
+                        <h2 className="text-xl font-semibold mb-1 text-center">
+                          {plan.name}
+                        </h2>
+                        <p className="text-3xl font-bold text-center mb-4">
+                          ${plan.price}
+                          <span className="text-sm font-normal text-gray-500">/mo</span>
+                        </p>
+
+                        <ul className="space-y-3 text-sm text-gray-600">
+                          <li className="flex justify-between">
+                            <span className="text-gray-400">Channels</span>
+                            <span className="font-medium">{plan.max_channels}</span>
+                          </li>
+                          <li className="flex justify-between">
+                            <span className="text-gray-400">Posts/day</span>
+                            <span className="font-medium">{plan.posts_per_day}</span>
+                          </li>
+                          <li className="flex justify-between">
+                            <span className="text-gray-400">Comments/day</span>
+                            <span className="font-medium">{plan.comments_per_day}</span>
+                          </li>
+                          <li className="flex justify-between">
+                            <span className="text-gray-400">DMs/day</span>
+                            <span className="font-medium">{plan.dms_per_day}</span>
+                          </li>
+                        </ul>
+                      </div>
+
+                      <button
+                        disabled={submitting === plan.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          subscribe(plan.id);
+                        }}
+                        className="mt-8 bg-[#0070ba] hover:bg-[#003087] text-white py-2.5 rounded-lg
+                                   transition font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        {submitting === plan.id ? (
+                          <>
+                            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            Redirecting to PayPal…
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 2.79A.859.859 0 0 1 5.79 2.1h7.918c2.76 0 4.76.617 5.95 1.835.55.565.91 1.16 1.09 1.8.19.68.19 1.41.01 2.24-.01.04-.02.08-.03.13-.65 3.32-2.88 4.47-5.73 4.47h-1.45c-.35 0-.64.25-.7.6l-.75 4.76-.03.17a.641.641 0 0 1-.633.54H7.076z"/>
+                            </svg>
+                            Pay with PayPal
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
-
-                  <button
-                    disabled={submitting === plan.id}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      subscribe(plan.id);
-                    }}
-                    className="mt-8 bg-black text-white py-2 rounded-lg
-                               hover:bg-gray-800 transition
-                               disabled:opacity-50"
-                  >
-                    {submitting === plan.id ? "Processing…" : "Select Plan"}
-                  </button>
                 </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 }

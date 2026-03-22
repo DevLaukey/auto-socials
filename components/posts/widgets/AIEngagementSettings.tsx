@@ -28,6 +28,7 @@ interface AIEngagementSettingsProps {
   onSettingsChange?: (settings: any) => void;
   onTargetUsersChange?: (users: string) => void;
   disabled?: boolean;
+  platform?: string;
 }
 
 export default function AIEngagementSettings({
@@ -45,7 +46,9 @@ export default function AIEngagementSettings({
   onSettingsChange = () => {},
   onTargetUsersChange = () => {},
   disabled = false,
+  platform = "",
 }: AIEngagementSettingsProps) {
+  const supportsDMs = platform.toLowerCase() !== "youtube";
   const [targetUsersInput, setTargetUsersInput] = useState(
     settings.ai_dms_target_users.join(", "),
   );
@@ -178,8 +181,8 @@ export default function AIEngagementSettings({
         )}
       </div>
 
-      {/* DMs Section */}
-      <div className="space-y-3 pt-2 border-t">
+      {/* DMs Section — not available on YouTube */}
+      {supportsDMs && <div className="space-y-3 pt-2 border-t">
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
             <Label className="font-medium">Send Promotional DMs</Label>
@@ -251,7 +254,7 @@ export default function AIEngagementSettings({
             </div>
           </div>
         )}
-      </div>
+      </div>}
     </div>
   );
 }
