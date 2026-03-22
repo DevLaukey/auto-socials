@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import MediaUploader from "../MediaUploader";
 import SchedulePicker from "../SchedulePicker";
+import TwitterThreadBuilder from "../widgets/TwitterThreadBuilder";
 
 interface Props {
   platform: string;
@@ -12,6 +13,7 @@ interface Props {
   isClipSource?: boolean;
   clipNumber?: number;
   totalClips?: number;
+  onThreadChange?: (thread: { enabled: boolean; tweets: string[] }) => void; // Add this prop
 }
 
 export default function PostMetadataModal({
@@ -22,6 +24,7 @@ export default function PostMetadataModal({
   isClipSource = false,
   clipNumber,
   totalClips,
+  onThreadChange, // Add this prop
 }: Props) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -31,6 +34,12 @@ export default function PostMetadataModal({
     initialMediaFile || null,
   );
   const [scheduledDate, setScheduledDate] = useState<Date | null>(null);
+
+  // Twitter/X specific
+  const [twitterThread, setTwitterThread] = useState<{ enabled: boolean; tweets: string[] }>({
+    enabled: false,
+    tweets: [""],
+  });
 
   // Instagram-only
   const [instagramType, setInstagramType] = useState<"post" | "story" | "reel">(
@@ -50,13 +59,22 @@ export default function PostMetadataModal({
     }
   }, [initialMediaFile]);
 
+  // Handle thread changes
+  const handleThreadChange = (thread: { enabled: boolean; tweets: string[] }) => {
+    setTwitterThread(thread);
+    if (onThreadChange) {
+      onThreadChange(thread);
+    }
+  };
+
   const handleSave = () => {
-    if (!mediaFile) {
+    // For Twitter, media is optional (can post text-only)
+    if (platform !== "twitter" && !mediaFile) {
       alert("Please upload media first.");
       return;
     }
 
-    onSave({
+    const saveData: any = {
       title,
       description,
       hashtags,
@@ -73,7 +91,15 @@ export default function PostMetadataModal({
             : undefined,
 
       clip_source: isClipSource,
-    });
+    };
+
+    // Add Twitter thread data if applicable
+    if (platform === "twitter" && twitterThread.enabled) {
+      saveData.is_thread = true;
+      saveData.thread_tweets = twitterThread.tweets.filter(t => t.trim());
+    }
+
+    onSave(saveData);
   };
 
   // Helper to determine if media is a video
@@ -131,7 +157,21 @@ export default function PostMetadataModal({
               )}
             </div>
           ) : (
-            <MediaUploader onUploaded={setMediaFile} />
+            // For Twitter, media upload is optional
+            platform !== "twitter" && (
+              <MediaUploader onUploaded={setMediaFile} />
+            )
+          )}
+
+          {/* For Twitter, show optional media upload */}
+          {platform === "twitter" && !isClipSource && (
+            <div>
+              <p className="text-sm text-muted-foreground mb-2">Optional Media</p>
+              <MediaUploader onUploaded={setMediaFile} />
+              <p className="text-xs text-muted-foreground mt-1">
+                Images and videos are optional for tweets
+              </p>
+            </div>
           )}
 
           <input
@@ -154,6 +194,14 @@ export default function PostMetadataModal({
             value={hashtags}
             onChange={(e) => setHashtags(e.target.value)}
           />
+
+          {/* Twitter Thread Builder */}
+          {platform === "twitter" && (
+            <TwitterThreadBuilder
+              onThreadChange={handleThreadChange}
+              disabled={false}
+            />
+          )}
 
           {platform === "youtube" && (
             <div>
