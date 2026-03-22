@@ -15,6 +15,8 @@ type Plan = {
   dms_per_day: number;
 };
 
+type PaymentMethod = "paypal" | "zereid";
+
 export default function SubscriptionPage() {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -25,7 +27,7 @@ export default function SubscriptionPage() {
 
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState<number | null>(null);
+  const [submitting, setSubmitting] = useState<{ id: number; method: PaymentMethod } | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,11 +46,7 @@ export default function SubscriptionPage() {
   }, []);
 
   useEffect(() => {
-    if (
-      !loadingAuth &&
-      user?.subscription &&
-      user.subscription.is_active === true
-    ) {
+    if (!loadingAuth && user?.subscription?.is_active === true) {
       router.replace("/");
     }
   }, [loadingAuth, user, router]);
@@ -81,27 +79,33 @@ export default function SubscriptionPage() {
     }
   };
 
-  const subscribe = async (planId: number) => {
+  const subscribe = async (planId: number, method: PaymentMethod) => {
     setError(null);
+    setSubmitting({ id: planId, method });
     try {
-      setSubmitting(planId);
-
-      const res = await apiFetch("/paypal/create-subscription-order", {
-        method: "POST",
-        body: JSON.stringify({ plan_id: planId }),
-      });
-
-      if (!res?.approval_url) {
-        throw new Error("Missing PayPal approval URL");
+      if (method === "paypal") {
+        const res = await apiFetch("/paypal/create-subscription-order", {
+          method: "POST",
+          body: JSON.stringify({ plan_id: planId }),
+        });
+        if (!res?.approval_url) throw new Error("Missing PayPal approval URL");
+        window.location.href = res.approval_url;
+      } else {
+        const res = await apiFetch("/subscriptions/subscribe", {
+          method: "POST",
+          body: JSON.stringify({ plan_id: planId }),
+        });
+        if (!res?.payment_url) throw new Error("Missing payment URL");
+        window.location.href = res.payment_url;
       }
-
-      // Redirect user to PayPal to approve payment
-      window.location.href = res.approval_url;
     } catch (err: any) {
-      setError(err?.message || "Failed to start PayPal payment");
+      setError(err?.message || "Failed to start payment");
       setSubmitting(null);
     }
   };
+
+  const isSubmitting = (planId: number, method: PaymentMethod) =>
+    submitting?.id === planId && submitting?.method === method;
 
   return (
     <div className="max-w-7xl mx-auto p-8 relative">
@@ -113,19 +117,12 @@ export default function SubscriptionPage() {
         <span>Back</span>
       </button>
 
-      <h1 className="text-3xl font-bold mb-2 text-center">
-        Choose a Subscription
-      </h1>
+      <h1 className="text-3xl font-bold mb-2 text-center">Choose a Subscription</h1>
       <p className="text-gray-500 mb-2 text-center">
         Subscribe to unlock posting and other features.
       </p>
-
-      {/* PayPal badge */}
-      <p className="text-center text-sm text-gray-400 mb-8 flex items-center justify-center gap-2">
-        <svg className="w-4 h-4 text-blue-600" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 2.79A.859.859 0 0 1 5.79 2.1h7.918c2.76 0 4.76.617 5.95 1.835.55.565.91 1.16 1.09 1.8.19.68.19 1.41.01 2.24-.01.04-.02.08-.03.13-.65 3.32-2.88 4.47-5.73 4.47h-1.45c-.35 0-.64.25-.7.6l-.75 4.76-.03.17a.641.641 0 0 1-.633.54H7.076z"/>
-        </svg>
-        Secure payment via PayPal
+      <p className="text-center text-sm text-gray-400 mb-8">
+        Pay securely with PayPal or ZeroID
       </p>
 
       {error && (
@@ -195,7 +192,7 @@ export default function SubscriptionPage() {
                           <span className="text-sm font-normal text-gray-500">/mo</span>
                         </p>
 
-                        <ul className="space-y-3 text-sm text-gray-600">
+                        <ul className="space-y-3 text-sm text-gray-600 mb-6">
                           <li className="flex justify-between">
                             <span className="text-gray-400">Channels</span>
                             <span className="font-medium">{plan.max_channels}</span>
@@ -215,29 +212,62 @@ export default function SubscriptionPage() {
                         </ul>
                       </div>
 
-                      <button
-                        disabled={submitting === plan.id}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          subscribe(plan.id);
-                        }}
-                        className="mt-8 bg-[#0070ba] hover:bg-[#003087] text-white py-2.5 rounded-lg
-                                   transition font-medium disabled:opacity-50 flex items-center justify-center gap-2"
-                      >
-                        {submitting === plan.id ? (
-                          <>
-                            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            Redirecting to PayPal…
-                          </>
-                        ) : (
-                          <>
-                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 2.79A.859.859 0 0 1 5.79 2.1h7.918c2.76 0 4.76.617 5.95 1.835.55.565.91 1.16 1.09 1.8.19.68.19 1.41.01 2.24-.01.04-.02.08-.03.13-.65 3.32-2.88 4.47-5.73 4.47h-1.45c-.35 0-.64.25-.7.6l-.75 4.76-.03.17a.641.641 0 0 1-.633.54H7.076z"/>
-                            </svg>
-                            Pay with PayPal
-                          </>
-                        )}
-                      </button>
+                      {/* Divider */}
+                      <div className="border-t border-gray-100 pt-4 space-y-2.5">
+                        <p className="text-xs text-gray-400 text-center mb-3">Choose payment method</p>
+
+                        {/* PayPal */}
+                        <button
+                          disabled={!!submitting}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            subscribe(plan.id, "paypal");
+                          }}
+                          className="w-full bg-[#0070ba] hover:bg-[#003087] text-white py-2.5 rounded-lg
+                                     transition font-medium disabled:opacity-50 flex items-center justify-center gap-2 text-sm"
+                        >
+                          {isSubmitting(plan.id, "paypal") ? (
+                            <>
+                              <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              Redirecting…
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 2.79A.859.859 0 0 1 5.79 2.1h7.918c2.76 0 4.76.617 5.95 1.835.55.565.91 1.16 1.09 1.8.19.68.19 1.41.01 2.24-.01.04-.02.08-.03.13-.65 3.32-2.88 4.47-5.73 4.47h-1.45c-.35 0-.64.25-.7.6l-.75 4.76-.03.17a.641.641 0 0 1-.633.54H7.076z"/>
+                              </svg>
+                              Pay with PayPal
+                            </>
+                          )}
+                        </button>
+
+                        {/* Divider */}
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-px bg-gray-200" />
+                          <span className="text-xs text-gray-400">or</span>
+                          <div className="flex-1 h-px bg-gray-200" />
+                        </div>
+
+                        {/* ZeroID / original */}
+                        <button
+                          disabled={!!submitting}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            subscribe(plan.id, "zereid");
+                          }}
+                          className="w-full bg-black hover:bg-gray-800 text-white py-2.5 rounded-lg
+                                     transition font-medium disabled:opacity-50 flex items-center justify-center gap-2 text-sm"
+                        >
+                          {isSubmitting(plan.id, "zereid") ? (
+                            <>
+                              <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              Redirecting…
+                            </>
+                          ) : (
+                            "Pay with ZeroID"
+                          )}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
