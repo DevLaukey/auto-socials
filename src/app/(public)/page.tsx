@@ -63,8 +63,7 @@ export default function LandingPage() {
       </nav>
 
       {/* ── HERO ── */}
-      <section className="min-h-screen flex flex-col justify-center items-center text-center px-6 pt-20 relative bg-gradient-to-b from-slate-50 to-white">
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-blue-100/60 rounded-full blur-3xl pointer-events-none" />
+      <section className="min-h-screen flex flex-col justify-center items-center text-center px-6 pt-20 relative bg-white">
 
         <motion.div
           variants={fadeUp}
@@ -82,7 +81,7 @@ export default function LandingPage() {
           initial="hidden"
           animate="show"
           custom={1}
-          className="text-5xl md:text-7xl font-bold leading-tight max-w-5xl text-gray-900"
+          className="text-5xl md:text-7xl font-bold leading-tight max-w-5xl text-slate-950"
         >
           Control Thousands of Accounts.{" "}
           <span className="text-[#1D4ED8]">Post Everywhere.</span>{" "}
