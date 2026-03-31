@@ -140,3 +140,45 @@ export const cancelPost = (id: number) => api.post(`/posts/${id}/cancel`);
 
 export const reschedulePost = (id: number, scheduled_time: string) =>
   api.post(`/posts/${id}/reschedule`, { scheduled_time });
+
+// --------------------------------------------------
+// MONEYMOTION API FUNCTIONS
+// --------------------------------------------------
+
+export interface MoneyMotionOrderResponse {
+  payment_id: string;
+  checkout_url: string;
+  reference: string;
+}
+
+export interface MoneyMotionSubscribeRequest {
+  plan_id: number;
+  return_url?: string;
+  cancel_url?: string;
+}
+
+export interface MoneyMotionPostPaymentRequest {
+  post_data: any;
+  return_url?: string;
+  cancel_url?: string;
+}
+
+// Create MoneyMotion subscription order
+export async function createMoneyMotionSubscriptionOrder(
+  data: MoneyMotionSubscribeRequest,
+): Promise<MoneyMotionOrderResponse> {
+  return apiFetch("/moneymotion/create-subscription-order", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+// Create MoneyMotion post payment order
+export async function createMoneyMotionPostOrder(
+  data: MoneyMotionPostPaymentRequest,
+): Promise<MoneyMotionOrderResponse> {
+  return apiFetch("/moneymotion/create-post-order", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
