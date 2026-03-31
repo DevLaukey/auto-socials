@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/src/store/authStore";
-import { apiFetch } from "@/src/lib/api";
+import { apiFetch, createMoneyMotionSubscriptionOrder } from "@/src/lib/api";
 
 type Plan = {
   id: number;
@@ -15,7 +15,7 @@ type Plan = {
   dms_per_day: number;
 };
 
-type PaymentMethod = "paypal" | "zereid";
+type PaymentMethod = "paypal" | "zereid" | "moneymotion";
 
 export default function SubscriptionPage() {
   const router = useRouter();
@@ -27,7 +27,10 @@ export default function SubscriptionPage() {
 
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState<{ id: number; method: PaymentMethod } | null>(null);
+  const [submitting, setSubmitting] = useState<{
+    id: number;
+    method: PaymentMethod;
+  } | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,7 +61,10 @@ export default function SubscriptionPage() {
     if (!card) return;
     const containerCenter = container.offsetWidth / 2;
     const cardCenter = card.offsetLeft + card.offsetWidth / 2;
-    container.scrollTo({ left: cardCenter - containerCenter, behavior: "smooth" });
+    container.scrollTo({
+      left: cardCenter - containerCenter,
+      behavior: "smooth",
+    });
   }, [activeIndex]);
 
   const startHoverScroll = (direction: "left" | "right") => {
@@ -67,7 +73,7 @@ export default function SubscriptionPage() {
       setActiveIndex((prev) =>
         direction === "left"
           ? Math.max(0, prev - 1)
-          : Math.min(plans.length - 1, prev + 1)
+          : Math.min(plans.length - 1, prev + 1),
       );
     }, 350);
   };
@@ -83,14 +89,50 @@ export default function SubscriptionPage() {
     setError(null);
     setSubmitting({ id: planId, method });
     try {
+      const returnUrl = `${window.location.origin}/payment/success`;
+      const cancelUrl = `${window.location.origin}/payment/cancel`;
+
       if (method === "paypal") {
-        const res = await apiFetch("/paypal/create-subscription-order", {
+        const res = await apiFetch("/subscriptions/subscribe/paypal", {
           method: "POST",
-          body: JSON.stringify({ plan_id: planId }),
+          body: JSON.stringify({
+            plan_id: planId,
+            return_url: returnUrl,
+            cancel_url: cancelUrl,
+          }),
         });
-        if (!res?.approval_url) throw new Error("Missing PayPal approval URL");
-        window.location.href = res.approval_url;
+        if (!res?.endpoint) throw new Error("Missing PayPal order endpoint");
+
+        // Call the endpoint to create PayPal order
+        const orderRes = await apiFetch(res.endpoint, {
+          method: "POST",
+          body: JSON.stringify(res.data),
+        });
+        if (!orderRes?.approval_url)
+          throw new Error("Missing PayPal approval URL");
+        window.location.href = orderRes.approval_url;
+      } else if (method === "moneymotion") {
+        const res = await apiFetch("/subscriptions/subscribe/moneymotion", {
+          method: "POST",
+          body: JSON.stringify({
+            plan_id: planId,
+            return_url: returnUrl,
+            cancel_url: cancelUrl,
+          }),
+        });
+
+        if (res.action === "create_moneymotion_order") {
+          // Call the MoneyMotion order creation endpoint
+          const orderRes = await apiFetch(res.endpoint!, {
+            method: "POST",
+            body: JSON.stringify(res.data),
+          });
+          if (!orderRes?.checkout_url)
+            throw new Error("Missing MoneyMotion checkout URL");
+          window.location.href = orderRes.checkout_url;
+        }
       } else {
+        // ZeroID
         const res = await apiFetch("/subscriptions/subscribe", {
           method: "POST",
           body: JSON.stringify({ plan_id: planId }),
@@ -117,12 +159,14 @@ export default function SubscriptionPage() {
         <span>Back</span>
       </button>
 
-      <h1 className="text-3xl font-bold mb-2 text-center">Choose a Subscription</h1>
+      <h1 className="text-3xl font-bold mb-2 text-center">
+        Choose a Subscription
+      </h1>
       <p className="text-gray-500 mb-2 text-center">
         Subscribe to unlock posting and other features.
       </p>
       <p className="text-center text-sm text-gray-400 mb-8">
-        Pay securely with PayPal or ZeroID
+        Pay securely with PayPal, MoneyMotion, or ZeroID
       </p>
 
       {error && (
@@ -153,7 +197,9 @@ export default function SubscriptionPage() {
 
           {/* RIGHT ARROW */}
           <button
-            onClick={() => setActiveIndex((i) => Math.min(plans.length - 1, i + 1))}
+            onClick={() =>
+              setActiveIndex((i) => Math.min(plans.length - 1, i + 1))
+            }
             onMouseEnter={() => startHoverScroll("right")}
             onMouseLeave={stopHoverScroll}
             disabled={activeIndex === plans.length - 1}
@@ -189,32 +235,44 @@ export default function SubscriptionPage() {
                         </h2>
                         <p className="text-3xl font-bold text-center mb-4">
                           ${plan.price}
-                          <span className="text-sm font-normal text-gray-500">/mo</span>
+                          <span className="text-sm font-normal text-gray-500">
+                            /mo
+                          </span>
                         </p>
 
                         <ul className="space-y-3 text-sm text-gray-600 mb-6">
                           <li className="flex justify-between">
                             <span className="text-gray-400">Channels</span>
-                            <span className="font-medium">{plan.max_channels}</span>
+                            <span className="font-medium">
+                              {plan.max_channels}
+                            </span>
                           </li>
                           <li className="flex justify-between">
                             <span className="text-gray-400">Posts/day</span>
-                            <span className="font-medium">{plan.posts_per_day}</span>
+                            <span className="font-medium">
+                              {plan.posts_per_day}
+                            </span>
                           </li>
                           <li className="flex justify-between">
                             <span className="text-gray-400">Comments/day</span>
-                            <span className="font-medium">{plan.comments_per_day}</span>
+                            <span className="font-medium">
+                              {plan.comments_per_day}
+                            </span>
                           </li>
                           <li className="flex justify-between">
                             <span className="text-gray-400">DMs/day</span>
-                            <span className="font-medium">{plan.dms_per_day}</span>
+                            <span className="font-medium">
+                              {plan.dms_per_day}
+                            </span>
                           </li>
                         </ul>
                       </div>
 
                       {/* Divider */}
                       <div className="border-t border-gray-100 pt-4 space-y-2.5">
-                        <p className="text-xs text-gray-400 text-center mb-3">Choose payment method</p>
+                        <p className="text-xs text-gray-400 text-center mb-3">
+                          Choose payment method
+                        </p>
 
                         {/* PayPal */}
                         <button
@@ -233,10 +291,43 @@ export default function SubscriptionPage() {
                             </>
                           ) : (
                             <>
-                              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 2.79A.859.859 0 0 1 5.79 2.1h7.918c2.76 0 4.76.617 5.95 1.835.55.565.91 1.16 1.09 1.8.19.68.19 1.41.01 2.24-.01.04-.02.08-.03.13-.65 3.32-2.88 4.47-5.73 4.47h-1.45c-.35 0-.64.25-.7.6l-.75 4.76-.03.17a.641.641 0 0 1-.633.54H7.076z"/>
+                              <svg
+                                className="w-3.5 h-3.5"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                              >
+                                <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 2.79A.859.859 0 0 1 5.79 2.1h7.918c2.76 0 4.76.617 5.95 1.835.55.565.91 1.16 1.09 1.8.19.68.19 1.41.01 2.24-.01.04-.02.08-.03.13-.65 3.32-2.88 4.47-5.73 4.47h-1.45c-.35 0-.64.25-.7.6l-.75 4.76-.03.17a.641.641 0 0 1-.633.54H7.076z" />
                               </svg>
                               Pay with PayPal
+                            </>
+                          )}
+                        </button>
+
+                        {/* MoneyMotion */}
+                        <button
+                          disabled={!!submitting}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            subscribe(plan.id, "moneymotion");
+                          }}
+                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg
+                                     transition font-medium disabled:opacity-50 flex items-center justify-center gap-2 text-sm"
+                        >
+                          {isSubmitting(plan.id, "moneymotion") ? (
+                            <>
+                              <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              Redirecting…
+                            </>
+                          ) : (
+                            <>
+                              <svg
+                                className="w-3.5 h-3.5"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                              >
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.5 15h-3v-3h3v3zm0-5h-3V7h3v5z" />
+                              </svg>
+                              Pay with MoneyMotion
                             </>
                           )}
                         </button>

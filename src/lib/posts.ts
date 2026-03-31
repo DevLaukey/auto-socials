@@ -1,7 +1,11 @@
 // Ensure HTTPS in production to avoid mixed content errors
 function getApiUrl() {
   const url = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
-  if (typeof window !== "undefined" && window.location.protocol === "https:" && url.startsWith("http://")) {
+  if (
+    typeof window !== "undefined" &&
+    window.location.protocol === "https:" &&
+    url.startsWith("http://")
+  ) {
     return url.replace("http://", "https://");
   }
   return url;
@@ -28,21 +32,21 @@ export interface Post {
   accounts?: PostAccount[];
   post_type?: string;
   privacy_status?: string;
-  
+
   // Twitter/X specific fields
   tweet_id?: string;
   media_ids?: string[];
   reply_to_tweet_id?: string;
   is_thread?: boolean;
   thread_tweets?: string[];
-  
+
   // AI engagement fields
   ai_comment_enabled?: boolean;
   ai_comment_count?: number;
   ai_comment_style?: string;
   ai_comments_delay_minutes?: number;
   ai_dms_enabled?: boolean;
-  
+
   // Engagement job counts
   comment_jobs_count?: number;
   dm_jobs_count?: number;
@@ -67,26 +71,41 @@ export interface CreatePostData {
   scheduled_time?: string | null;
   privacy_status?: string;
   post_type?: string;
-  
+
+  // Payment method
+  payment_method?: "zeroid" | "paypal" | "moneymotion";
+  return_url?: string;
+  cancel_url?: string;
+
   // Twitter/X specific fields
   is_thread?: boolean;
   thread_tweets?: string[];
   quote_tweet_id?: string;
   reply_to_tweet_id?: string;
-  
+
   // AI Comments settings
   ai_comments_enabled?: boolean;
   ai_comments_count?: number;
-  ai_comments_style?: "casual" | "funny" | "thoughtful" | "question" | "supportive";
+  ai_comments_style?:
+    | "casual"
+    | "funny"
+    | "thoughtful"
+    | "question"
+    | "supportive";
   ai_comments_delay_minutes?: number;
   ai_comments_spread?: boolean;
-  
+
   // AI DMs settings
   ai_dms_enabled?: boolean;
   ai_dms_target_users?: string[];
-  ai_dms_message_style?: "friendly" | "professional" | "casual" | "enthusiastic" | "helpful";
+  ai_dms_message_style?:
+    | "friendly"
+    | "professional"
+    | "casual"
+    | "enthusiastic"
+    | "helpful";
   ai_dms_delay_minutes?: number;
-  
+
   // Clip source indicator
   clip_source?: boolean;
   clip_data?: any;
@@ -144,10 +163,20 @@ export interface PaymentInitiateResponse {
   message: string;
 }
 
+export interface PaymentMethodResponse {
+  payment_method: string;
+  action: string;
+  endpoint?: string;
+  data?: any;
+  payment_id?: string;
+  payment_url?: string;
+}
+
 export interface PaymentStatus {
   payment_id: string;
   status: "pending" | "paid" | "failed";
   is_paid: boolean;
+  payment_method?: string;
   created_at: string;
   updated_at: string;
 }
@@ -156,6 +185,7 @@ export interface PostPayment {
   payment_id: string;
   status: "pending" | "paid" | "failed";
   is_paid: boolean;
+  payment_method?: string;
   amount: number;
   currency: string;
   created_at: string;
@@ -203,7 +233,9 @@ export async function listPosts(): Promise<Post[]> {
 }
 
 // Create a new post (basic)
-export async function createPost(data: CreatePostData): Promise<CreatePostResponse> {
+export async function createPost(
+  data: CreatePostData,
+): Promise<CreatePostResponse> {
   return postsFetch("/posts/", {
     method: "POST",
     body: JSON.stringify(data),
@@ -212,7 +244,7 @@ export async function createPost(data: CreatePostData): Promise<CreatePostRespon
 
 // Create a post with AI engagement automation
 export async function createPostWithEngagement(
-  data: CreatePostData
+  data: CreatePostData,
 ): Promise<CreatePostWithEngagementResponse> {
   return postsFetch("/posts/with-engagement", {
     method: "POST",
@@ -231,7 +263,9 @@ export async function getPostStatus(postId: number): Promise<PostStatus> {
 }
 
 // Execute a post immediately
-export async function executePost(postId: number): Promise<{ message: string }> {
+export async function executePost(
+  postId: number,
+): Promise<{ message: string }> {
   return postsFetch(`/posts/${postId}/execute`, {
     method: "POST",
   });
@@ -247,7 +281,7 @@ export async function cancelPost(postId: number): Promise<{ message: string }> {
 // Reschedule a post
 export async function reschedulePost(
   postId: number,
-  scheduledTime: string
+  scheduledTime: string,
 ): Promise<{ message: string }> {
   return postsFetch(`/posts/${postId}/reschedule`, {
     method: "PATCH",
@@ -272,14 +306,18 @@ export async function getPostComments(postId: number): Promise<CommentJob[]> {
 }
 
 // Cancel a scheduled comment job
-export async function cancelCommentJob(jobId: number): Promise<{ message: string }> {
+export async function cancelCommentJob(
+  jobId: number,
+): Promise<{ message: string }> {
   return postsFetch(`/posts/comments/${jobId}`, {
     method: "DELETE",
   });
 }
 
 // Retry a failed comment job
-export async function retryCommentJob(jobId: number): Promise<{ message: string }> {
+export async function retryCommentJob(
+  jobId: number,
+): Promise<{ message: string }> {
   return postsFetch(`/posts/comments/${jobId}/retry`, {
     method: "POST",
   });
@@ -328,9 +366,19 @@ export async function getTweetMetrics(tweetId: string): Promise<{
 // PAYMENT ENDPOINTS
 // =====================================================
 
-// Initiate payment for creating a post
+// Initiate payment for creating a post with method selection
+export async function initiatePostPaymentWithMethod(
+  data: CreatePostData,
+): Promise<PaymentMethodResponse> {
+  return postsFetch("/posts/initiate-payment/select-method", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+// Initiate payment for creating a post (legacy ZeroID)
 export async function initiatePostPayment(
-  data: CreatePostData
+  data: CreatePostData,
 ): Promise<PaymentInitiateResponse> {
   return postsFetch("/posts/initiate-payment", {
     method: "POST",
@@ -340,17 +388,53 @@ export async function initiatePostPayment(
 
 // Check payment status by payment ID
 export async function getPaymentStatus(
-  paymentId: string
+  paymentId: string,
 ): Promise<PaymentStatus> {
   return postsFetch(`/posts/payment-status/${paymentId}`);
 }
 
 // List all user's post payments
 export async function getMyPayments(
-  status?: "pending" | "paid" | "failed"
+  status?: "pending" | "paid" | "failed",
 ): Promise<PostPayment[]> {
   const query = status ? `?status=${status}` : "";
   return postsFetch(`/posts/my-payments${query}`);
+}
+
+// Get available payment methods
+export async function getPaymentMethods(): Promise<{
+  payment_methods: Array<{
+    id: string;
+    name: string;
+    description: string;
+    icon: string;
+    enabled: boolean;
+    amount?: number;
+    currency?: string;
+  }>;
+}> {
+  return postsFetch("/posts/payment-methods");
+}
+
+// =====================================================
+// MONEYMOTION PAYMENT FUNCTIONS
+// =====================================================
+
+export interface MoneyMotionOrderResponse {
+  payment_id: string;
+  checkout_url: string;
+  reference: string;
+}
+
+export async function createMoneyMotionPostOrder(data: {
+  post_data: any;
+  return_url?: string;
+  cancel_url?: string;
+}): Promise<MoneyMotionOrderResponse> {
+  return postsFetch("/moneymotion/create-post-order", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 }
 
 // =====================================================
@@ -358,7 +442,10 @@ export async function getMyPayments(
 // =====================================================
 
 // Format post status for display
-export function formatPostStatus(status: string): { label: string; color: string } {
+export function formatPostStatus(status: string): {
+  label: string;
+  color: string;
+} {
   const statusMap: Record<string, { label: string; color: string }> = {
     pending: { label: "Pending", color: "bg-yellow-100 text-yellow-800" },
     processing: { label: "Processing", color: "bg-blue-100 text-blue-800" },
@@ -368,11 +455,19 @@ export function formatPostStatus(status: string): { label: string; color: string
     failed: { label: "Failed", color: "bg-red-100 text-red-800" },
     cancelled: { label: "Cancelled", color: "bg-gray-100 text-gray-800" },
   };
-  return statusMap[status.toLowerCase()] || { label: status, color: "bg-gray-100 text-gray-800" };
+  return (
+    statusMap[status.toLowerCase()] || {
+      label: status,
+      color: "bg-gray-100 text-gray-800",
+    }
+  );
 }
 
 // Format comment job status for display
-export function formatCommentJobStatus(status: string): { label: string; color: string } {
+export function formatCommentJobStatus(status: string): {
+  label: string;
+  color: string;
+} {
   const statusMap: Record<string, { label: string; color: string }> = {
     pending: { label: "Scheduled", color: "bg-purple-100 text-purple-800" },
     processing: { label: "Posting...", color: "bg-blue-100 text-blue-800" },
@@ -380,11 +475,19 @@ export function formatCommentJobStatus(status: string): { label: string; color: 
     failed: { label: "Failed", color: "bg-red-100 text-red-800" },
     cancelled: { label: "Cancelled", color: "bg-gray-100 text-gray-800" },
   };
-  return statusMap[status.toLowerCase()] || { label: status, color: "bg-gray-100 text-gray-800" };
+  return (
+    statusMap[status.toLowerCase()] || {
+      label: status,
+      color: "bg-gray-100 text-gray-800",
+    }
+  );
 }
 
 // Format DM job status for display
-export function formatDMJobStatus(status: string): { label: string; color: string } {
+export function formatDMJobStatus(status: string): {
+  label: string;
+  color: string;
+} {
   const statusMap: Record<string, { label: string; color: string }> = {
     pending: { label: "Scheduled", color: "bg-purple-100 text-purple-800" },
     processing: { label: "Sending...", color: "bg-blue-100 text-blue-800" },
@@ -392,7 +495,12 @@ export function formatDMJobStatus(status: string): { label: string; color: strin
     failed: { label: "Failed", color: "bg-red-100 text-red-800" },
     cancelled: { label: "Cancelled", color: "bg-gray-100 text-gray-800" },
   };
-  return statusMap[status.toLowerCase()] || { label: status, color: "bg-gray-100 text-gray-800" };
+  return (
+    statusMap[status.toLowerCase()] || {
+      label: status,
+      color: "bg-gray-100 text-gray-800",
+    }
+  );
 }
 
 // Check if a post has AI engagement enabled
