@@ -14,7 +14,7 @@ export default function AppShell({
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-slate-100">
+    <div className="flex h-screen bg-gradient-to-br from-blue-50 via-indigo-50/30 to-slate-50">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -29,8 +29,27 @@ export default function AppShell({
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
         <Topbar title={title} onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 p-4 md:p-6 overflow-y-auto">{children}</main>
+        <main className="flex-1 p-4 md:p-6 overflow-y-auto">
+          <div className="animate-fadeIn">{children}</div>
+        </main>
       </div>
+
+      {/* Add custom animation styles */}
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 }

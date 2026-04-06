@@ -1,22 +1,32 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import { useAuthStore } from "@/src/store/authStore";
 
-export default function AppLayout({
-  children,
-  title,
-}: {
-  children: React.ReactNode;
-  title?: string;
-}) {
+export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
 
   const user = useAuthStore((s) => s.user);
   const loading = useAuthStore((s) => s.loading);
   const checkAuth = useAuthStore((s) => s.checkAuth);
+
+  // Get the page title based on the current path
+  const getPageTitle = () => {
+    const path = pathname;
+    if (path === "/") return "Dashboard";
+    if (path === "/accounts") return "Accounts";
+    if (path === "/posts") return "Posts";
+    if (path === "/payments") return "Payments";
+    if (path === "/clips") return "AI Clips";
+    if (path === "/messages") return "Messages";
+    if (path === "/analytics") return "Analytics";
+    if (path === "/settings") return "Settings";
+    if (path?.startsWith("/admin")) return "Admin Panel";
+    return "CLIPPER KILLER";
+  };
 
   /**
    * Run auth check once on mount
@@ -25,10 +35,6 @@ export default function AppLayout({
     checkAuth();
   }, [checkAuth]);
 
-  /**
-   * Redirect only AFTER auth check completes
-   * - Not logged in → /login
-   */
   useEffect(() => {
     if (loading) return;
 
@@ -37,13 +43,11 @@ export default function AppLayout({
     }
   }, [loading, user, router]);
 
-  /**
-   * While redirecting, prevent protected UI from flashing
-   * TEMPORARILY DISABLED: Subscription check removed
-   */
   if (!user) {
     return null;
   }
 
-  return <AppShell title={title || "Dashboard"}>{children}</AppShell>;
+  const title = getPageTitle();
+
+  return <AppShell title={title}>{children}</AppShell>;
 }
