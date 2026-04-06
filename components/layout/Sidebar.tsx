@@ -3,7 +3,6 @@
 import {
   LayoutDashboard,
   MessageSquare,
-
   Share2,
   BarChart3,
   Settings,
@@ -19,6 +18,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
 import { useAuthStore } from "@/src/store/authStore";
+import Image from "next/image";
 
 const navItems = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -26,7 +26,6 @@ const navItems = [
   { label: "Posts", href: "/posts", icon: Send },
   { label: "Payments", href: "/payments", icon: CreditCard },
   { label: "AI Clips", href: "/clips", icon: Scissors },
-
   { label: "Messages", href: "/messages", icon: MessageSquare },
   { label: "Analytics", href: "/analytics", icon: BarChart3 },
   { label: "Settings", href: "/settings", icon: Settings },
@@ -50,9 +49,28 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         ${isOpen ? "translate-x-0" : "-translate-x-full"}
       `}
     >
-      {/* Header with close button on mobile */}
-      <div className="px-6 py-4 flex items-center justify-between">
-        <span className="text-xl font-semibold">AutoPlatform</span>
+      {/* Header with logo */}
+      <div className="px-6 py-4 flex items-center justify-between border-b border-slate-800">
+        <Link href="/" className="flex items-center gap-3 group">
+          <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-gradient-to-br from-[#1D4ED8] to-purple-600 flex items-center justify-center">
+            <Image
+              src="/images/Logo.jpeg"
+              alt="ClipperKiller Logo"
+              width={40}
+              height={40}
+              className="object-contain p-1"
+              priority
+            />
+          </div>
+          <div>
+            <h1 className="font-bold text-lg text-white leading-tight group-hover:text-[#1D4ED8] transition">
+              CLIPPER KILLER
+            </h1>
+            <p className="text-[8px] text-gray-400 -mt-1">
+              SOCIAL MEDIA MANAGING SOFTWARE
+            </p>
+          </div>
+        </Link>
         <button
           onClick={onClose}
           className="lg:hidden p-1 rounded-md hover:bg-slate-800"
@@ -61,7 +79,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         </button>
       </div>
 
-      <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
+      <nav className="flex-1 px-4 space-y-1 overflow-y-auto mt-4">
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = pathname === item.href;
@@ -71,7 +89,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               key={item.href}
               href={item.href}
               onClick={onClose}
-              className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm
+              className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition
                 ${active ? "bg-slate-800 text-white" : "hover:bg-slate-800"}`}
             >
               <Icon size={18} />
@@ -87,7 +105,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
           {/* Admin Section */}
           <div className="px-4 pb-4 space-y-1">
-            <p className="text-xs text-slate-400 px-3">Admin</p>
+            <p className="text-xs text-slate-400 px-3 mb-2">Admin</p>
             <Link
               href="/admin/users"
               onClick={onClose}
@@ -97,15 +115,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               <Users size={18} />
               Users
             </Link>
-            {/* <Link
-              href="/admin/payments"
-              onClick={onClose}
-              className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm
-                ${pathname === "/admin/payments" ? "bg-slate-800 text-white" : "hover:bg-slate-800"}`}
-            >
-              <CreditCard size={18} />
-              Post Payments
-            </Link> */}
             <Link
               href="/admin/tiers"
               onClick={onClose}
@@ -115,15 +124,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               <Layers size={18} />
               Tiers
             </Link>
-            {/* <Link
-              href="/admin/logs"
-              onClick={onClose}
-              className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm
-                ${pathname === "/admin/logs" ? "bg-slate-800 text-white" : "hover:bg-slate-800"}`}
-            >
-              <FileText size={18} />
-              System Logs
-            </Link> */}
           </div>
         </>
       )}
