@@ -10,6 +10,7 @@ type Subscription = {
 type User = {
   id: number;
   email: string;
+  name?: string;
   is_admin?: boolean;
   subscription?: Subscription | null;
 };
