@@ -32,32 +32,27 @@ export default function ForgotPasswordPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-md">
           {/* Logo Section */}
           <div className="mb-8 text-center">
-            <div className="flex items-center justify-center gap-3 mb-3">
-              <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-gradient-to-br from-[#1D4ED8] to-purple-600 flex items-center justify-center shadow-lg">
-                <Image
-                  src="/images/Logo.jpeg"
-                  alt="ClipperKiller Logo"
-                  width={64}
-                  height={64}
-                  className="object-contain p-1.5"
-                  priority
-                />
-              </div>
+            <div className="flex items-center justify-center mb-3">
+              <Image
+                src="/images/Logo.jpeg"
+                alt="ClipperKiller Logo"
+                width={160}
+                height={160}
+                className="object-contain"
+                priority
+                unoptimized
+              />
             </div>
-            <h1 className="text-2xl font-bold text-white">CLIPPER KILLER</h1>
-            <p className="text-xs text-gray-400 mt-1">
-              SOCIAL MEDIA MANAGING SOFTWARE
-            </p>
           </div>
 
-          <div className="rounded-2xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-6 sm:p-8 shadow-sm text-center">
-            <div className="w-14 h-14 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 sm:p-8 shadow-sm text-center">
+            <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg
-                className="w-7 h-7 text-green-400"
+                className="w-7 h-7 text-green-600"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth={2.5}
@@ -70,20 +65,20 @@ export default function ForgotPasswordPage() {
                 />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-white mb-2">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
               Check your email
             </h1>
-            <p className="text-sm text-gray-400 mb-1">
+            <p className="text-sm text-gray-600 mb-1">
               We&apos;ve sent a reset link to
             </p>
-            <p className="text-sm font-medium text-white mb-6">{email}</p>
+            <p className="text-sm font-medium text-gray-900 mb-6">{email}</p>
             <p className="text-xs text-gray-500 mb-6">
               Didn&apos;t receive it? Check your spam folder.
             </p>
             <Button
               onClick={() => setSuccess(false)}
               variant="outline"
-              className="w-full h-11 border-slate-600 text-gray-300 hover:bg-slate-700 hover:text-white"
+              className="w-full h-11 border-gray-300 text-gray-700 hover:bg-gray-50"
             >
               Try another email
             </Button>
@@ -103,45 +98,40 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo Section */}
         <div className="mb-8 text-center">
-          <div className="flex items-center justify-center gap-3 mb-3">
-            <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-gradient-to-br from-[#1D4ED8] to-purple-600 flex items-center justify-center shadow-lg">
-              <Image
-                src="/images/Logo.jpeg"
-                alt="ClipperKiller Logo"
-                width={64}
-                height={64}
-                className="object-contain p-1.5"
-                priority
-              />
-            </div>
+          <div className="flex items-center justify-center mb-3">
+            <Image
+              src="/images/Logo.jpeg"
+              alt="ClipperKiller Logo"
+              width={160}
+              height={160}
+              className="object-contain"
+              priority
+              unoptimized
+            />
           </div>
-          <h1 className="text-2xl font-bold text-white">CLIPPER KILLER</h1>
-          <p className="text-xs text-gray-400 mt-1">
-            SOCIAL MEDIA MANAGING SOFTWARE
-          </p>
         </div>
 
-        <div className="rounded-2xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-6 sm:p-8 shadow-sm">
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 sm:p-8 shadow-sm">
           <div className="mb-6 text-center">
-            <h1 className="text-2xl font-bold text-white">Forgot password?</h1>
-            <p className="mt-2 text-sm text-gray-400">
+            <h1 className="text-2xl font-bold text-gray-900">Forgot password?</h1>
+            <p className="mt-2 text-sm text-gray-600">
               Enter your email and we&apos;ll send you a reset link
             </p>
           </div>
 
           {error && (
-            <div className="mb-5 rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-400">
+            <div className="mb-5 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Email address
               </label>
               <Input
@@ -151,7 +141,7 @@ export default function ForgotPasswordPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={submitting}
-                className="w-full h-11 bg-slate-900 border-slate-700 text-white placeholder:text-gray-500"
+                className="w-full h-11 border-gray-300 focus:border-[#1D4ED8] focus:ring-[#1D4ED8]"
               />
             </div>
 
